@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>Akışkan Tür Haritası</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html, body { margin: 0; padding: 0; background: #000; color: #fff; overflow: hidden;
+      font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    canvas { display: block; }
+    /* Kıyı çizgisi katmanı: parçacık kanvasının altında, sabit. */
+    #map { position: fixed; inset: 0; z-index: 0; }
+    main, .p5Canvas { position: relative; z-index: 1; }
+    #overlay { z-index: 2; }
+    /* Yazılar kanvasın üstünde HTML katmanı olarak durur: keskin ve kolay biçimlenir. */
+    #overlay { position: fixed; inset: 0; pointer-events: none;
+      transition: opacity 0.6s ease; }
+    #overlay.hidden { opacity: 0; }
+    #title { position: absolute; top: 28px; left: 32px; font-size: 12px; letter-spacing: 0.28em;
+      text-transform: uppercase; color: rgba(255,255,255,0.45); }
+    #title b { display: block; margin-top: 6px; font-weight: 400; color: rgba(255,255,255,0.75);
+      letter-spacing: 0.32em; }
+    #year { position: absolute; left: 32px; bottom: 30px; font-size: 96px; font-weight: 200;
+      letter-spacing: 0.04em; line-height: 1; color: rgba(255,255,255,0.9);
+      font-variant-numeric: tabular-nums; }
+    #count { position: absolute; left: 34px; bottom: 138px; font-size: 13px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: rgba(255,255,255,0.45); }
+    #legend { position: absolute; right: 32px; bottom: 34px; display: flex; flex-direction: column;
+      gap: 10px; align-items: flex-end; }
+    .chip { display: flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: 0.16em;
+      text-transform: uppercase; color: rgba(255,255,255,0.65); transition: opacity 0.3s; }
+    .chip.off { opacity: 0.22; text-decoration: line-through; }
+    .chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+      box-shadow: 0 0 12px currentColor; }
+    .chip small { color: rgba(255,255,255,0.35); letter-spacing: 0.08em; }
+    #source { position: absolute; right: 32px; top: 30px; font-size: 11px; letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.3); text-align: right; max-width: 40vw; }
+    #hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
+      font-size: 11px; letter-spacing: 0.12em; color: rgba(255,255,255,0.35);
+      white-space: nowrap; transition: opacity 1s; }
+    #hint.hidden { opacity: 0; }
+    #paused { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      font-size: 12px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.4);
+      display: none; }
+    #paused.show { display: block; }
+    #fps { position: absolute; left: 32px; top: 50%; font-size: 11px; color: rgba(255,255,255,0.35);
+      font-variant-numeric: tabular-nums; display: none; }
+    #fps.show { display: block; }
+    #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+  </style>
+</head>
+<body>
+  <canvas id="map"></canvas>
+  <div id="loading">Veri yükleniyor</div>
+  <div id="overlay">
+    <div id="title">Biyoçeşitlilik<b>Akışkan Tür Haritası</b></div>
+    <div id="source"></div>
+    <div id="count"></div>
+    <div id="year"></div>
+    <div id="legend"></div>
+    <div id="hint">boşluk: durdur · ← →: yıl · ↑ ↓: hız · 1-5: sınıf · F: tam ekran · H: yazıları gizle · R: baştan · S: kaydet</div>
+    <div id="paused">durduruldu</div>
+    <div id="fps"></div>
+  </div>
+
+  <!-- p5.js yerel kopya: sergi salonunda internet olmasa da çalışır. -->
+  <script src="lib/p5.min.js"></script>
+  <script>if (typeof p5 === "undefined") document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"><\/script>');</script>
+  <!-- Veri dosyaları JS olarak yüklenir; böylece index.html çift tıklamayla, sunucusuz çalışır. -->
+  <script src="data/turkey_outline.js"></script>
+  <script src="data/observations.js"></script>
+  <script src="sketch.js"></script>
+</body>
+</html>

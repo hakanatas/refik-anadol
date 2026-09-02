@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.pyc
+__pycache__/
+# GBIF indirmeleri büyük olur, depoya girmesin
+*.zip
+data/*.csv
