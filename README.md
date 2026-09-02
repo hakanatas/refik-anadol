@@ -41,9 +41,26 @@ hareketine bağlanabilir.
 
 ## Gerçek veri: GBIF
 
-1. [gbif.org/occurrence/search](https://www.gbif.org/occurrence/search) adresinde ücretsiz hesap açın.
-2. Filtreler: **Country = Turkey**, **Has coordinate = true**, **Occurrence status = present**.
-3. **Download → Simple** seçin. E-postayla gelen zip'i açın; içinde tab ile ayrılmış bir CSV vardır.
+### Kolay yol: açık API (hesap gerekmez)
+
+```bash
+python3 scripts/fetch_gbif_api.py --total 60000
+```
+
+Betik her yılın gerçek kayıt sayısını öğrenir, toplam kotayı yıllara orantılı
+dağıtır ve veriyi çeker. Birkaç dakika sürer, internet gerekir, ek kütüphane gerekmez.
+Bittiğinde `index.html`'i yenileyin.
+
+### Tam indirme (daha fazla kayıt isterseniz)
+
+Dikkat: filtre uygulanmamış GBIF indirmesi yüzlerce gigabayttır. Aşağıdaki
+bağlantı filtreleri hazır taşır; kayıt sayısı birkaç milyon görünmeli:
+
+https://www.gbif.org/occurrence/search?country=TR&has_coordinate=true&has_geospatial_issue=false&occurrence_status=present&year=1950,2024
+
+1. Ücretsiz hesap açıp giriş yapın.
+2. Yukarıdaki bağlantıyı açın, filtrelerin seçili olduğunu görün.
+3. **Download → Simple** seçin (Darwin Core Archive değil). E-postayla gelen zip'i açın; içinde tab ile ayrılmış bir CSV vardır.
 4. Dönüştürün:
 
 ```bash
@@ -99,7 +116,8 @@ lib/p5.min.js            p5.js 1.9.4 yerel kopyası (çevrimdışı çalışma i
 data/observations.*      gözlem verisi (json ve js kopyası)
 data/turkey_outline.*    kaba Türkiye kıyı ve sınır çizgisi
 scripts/generate_synthetic.py   sentetik veri üretici
-scripts/prepare_gbif.py         GBIF CSV -> sergi formatı
+scripts/fetch_gbif_api.py       GBIF açık API'den orantılı örnek çeker
+scripts/prepare_gbif.py         GBIF CSV indirmesi -> sergi formatı
 scripts/common.py               ortak sınıf eşlemesi ve çıktı yazımı
 KONSEPT.md               sergi metni ve algoritmik yaklaşım
 docs/                    önizleme görüntüleri
@@ -114,7 +132,7 @@ Jüri karşısında bu ayrımı yapabilmek, işin bilimsel değerini gösterir.
 
 ## Yol haritası
 
-- [ ] Gerçek GBIF verisi
+- [ ] Gerçek GBIF verisi (`fetch_gbif_api.py` hazır, takım bilgisayarında çalıştırılacak)
 - [ ] Ses katmanı: o yılın kuş sesleri (Xeno-canto)
 - [ ] Web kamera ile izleyici hareketine tepki
 - [ ] FTC robotunun sensör verisinden canlı katman
