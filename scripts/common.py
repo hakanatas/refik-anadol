@@ -7,9 +7,10 @@ Veri formatı (data/observations.json ve data/observations.js):
     "classes": ["Kuşlar", "Bitkiler", "Böcekler", "Memeliler", "Diğer"],
     "yearMin": 1950, "yearMax": 2024, "count": N
   },
-  "obs": [[boylam, enlem, yıl, sınıfIndeksi], ...]
+  "obs": [[boylam, enlem, yıl, sınıfIndeksi, türIndeksi], ...]
 }
-Kompakt dizi kullanılır çünkü 100 bin kaydı tarayıcıya hızlı yüklemek gerekir.
+"species" listesi meta içinde durur; her kayıt bu listeye indeksle bağlanır (5. eleman,
+isteğe bağlı). Kompakt dizi kullanılır çünkü 100 bin kaydı tarayıcıya hızlı yüklemek gerekir.
 """
 import json
 from pathlib import Path
@@ -31,6 +32,28 @@ def map_class(gbif_class: str, gbif_kingdom: str) -> int:
     if c == "Mammalia":
         return 3
     return 4
+
+
+def species_name(row: dict) -> str:
+    """GBIF satırından gösterilecek tür adı: species, yoksa scientificName'in ilk iki kelimesi."""
+    sp = (row.get("species") or "").strip()
+    if sp:
+        return sp
+    sci = (row.get("scientificName") or "").strip()
+    return " ".join(sci.split()[:2]) if sci else ""
+
+
+def index_species(records: list) -> tuple:
+    """[..., sınıf, 'Tür adı'] kayıtlarını [..., sınıf, indeks] yapar; tür listesini döndürür."""
+    names, idx = [], {}
+    out = []
+    for r in records:
+        name = r[4] if len(r) > 4 else ""
+        if name not in idx:
+            idx[name] = len(names)
+            names.append(name)
+        out.append(r[:4] + [idx[name]])
+    return names, out
 
 
 def write_outputs(out_dir: Path, meta: dict, obs: list) -> None:

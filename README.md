@@ -82,11 +82,31 @@ Sayfa internet gerektirmez; p5.js `lib/` klasöründe yerel olarak durur.
 | R | Baştan başla |
 | I | Giriş ekranını göster |
 | M | Sesi kapat / aç |
+| Z | Yakın bakış: imlecin altındaki bölgeye yaklaş, tekrar Z ile geri |
+| K | Kamera etkileşimi: izleyicinin hareketi parçacıkları iter |
 | S | PNG olarak kaydet |
 | D | FPS ve parçacık sayısını göster |
 
-Fare hareketi parçacıkları hafifçe iter. İleride web kamera ile izleyici
-hareketine bağlanabilir.
+Fare hareketi parçacıkları hafifçe iter.
+
+### Tür kartları
+
+İmleç (veya dokunuş) bir ışığa yaklaşınca o ışığın gerçek kaydı görünür: Türkçe ad, bilimsel ad,
+sınıf, yıl, konum. Türkçe adlar `data/tur_adlari.js` sözlüğünden gelir; takım bu listeyi
+genişletebilir. Tür adlarının veri dosyasında olması için dönüştürücüyü bir kez daha çalıştırın
+(aşağıdaki GBIF bölümü); eski dosyada kart yalnızca sınıf ve yılı gösterir.
+
+### Yakın bakış
+
+**Z** imlecin altındaki bölgeye yaklaşır: "bizim şehrimizde ne kaydedildi?" Genişlik
+`CONFIG.zoomSpan` (derece). Açılışta bir bölgeye odaklamak için URL: `sergi/index.html?focus=29.0,41.0,2.6`
+(boylam, enlem, genişlik). Yerel sergi için kullanışlı.
+
+### Kamera etkileşimi
+
+**K** web kamerayı açar (tarayıcı izin ister). Görüntü 32×18 hücreye indirgenir, ardışık kareler
+arasındaki fark hareket sayılır ve o bölgedeki parçacıkları iter. Görüntü hiçbir yere gönderilmez,
+kaydedilmez. Açılışta otomatik denemek için `CONFIG.camera = 1`; itme gücü `cameraForce`.
 
 ## Gerçek veri: GBIF
 
@@ -135,7 +155,8 @@ python3 scripts/generate_synthetic.py -n 40000 --seed 1
 {
   "meta": { "source": "...", "classes": ["Kuşlar", "Bitkiler", "Böcekler", "Memeliler", "Diğer"],
             "yearMin": 1950, "yearMax": 2024, "count": 40000 },
-  "obs": [[boylam, enlem, yıl, sınıfIndeksi], ...]
+  "species": ["Ciconia ciconia", ...],
+  "obs": [[boylam, enlem, yıl, sınıfIndeksi, türIndeksi], ...]
 }
 ```
 
@@ -191,6 +212,7 @@ sergi/sound.js           veriden üretilen ses: doğum notaları, uğultu, yıl 
 lib/p5.min.js            p5.js 1.9.4 yerel kopyası (çevrimdışı çalışma için)
 data/observations.*      gözlem verisi (json ve js kopyası)
 data/turkey_outline.*    kaba Türkiye kıyı ve sınır çizgisi
+data/tur_adlari.js       bilimsel ad -> Türkçe ad sözlüğü (tür kartları)
 scripts/generate_synthetic.py   sentetik veri üretici
 scripts/fetch_gbif_api.py       GBIF açık API'den orantılı örnek çeker
 scripts/prepare_gbif.py         GBIF CSV indirmesi -> sergi formatı
@@ -218,6 +240,7 @@ Jüri karşısında bu ayrımı yapabilmek, işin bilimsel değerini gösterir.
 - [x] Gerçek GBIF verisi
 - [x] Ses katmanı: veriden sentezlenen notalar ve uğultu
 - [ ] Gerçek kuş sesleri (Xeno-canto) ile karışım
-- [ ] Web kamera ile izleyici hareketine tepki
+- [x] Web kamera ile izleyici hareketine tepki
+- [x] Tür kartları ve yakın bakış
 - [ ] FTC robotunun sensör verisinden canlı katman
 - [ ] WebGL sürümü: 100 bin+ parçacık

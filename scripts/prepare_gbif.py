@@ -17,7 +17,7 @@ import random
 import sys
 from pathlib import Path
 
-from common import CLASSES, map_class, write_outputs
+from common import CLASSES, index_species, map_class, species_name, write_outputs
 
 ROOT = Path(__file__).resolve().parent.parent
 csv.field_size_limit(sys.maxsize)
@@ -57,7 +57,7 @@ def main() -> None:
                 skipped += 1
                 continue
             cls = map_class(row.get("class"), row.get("kingdom"))
-            rec = [round(lon, 4), round(lat, 4), year, cls]
+            rec = [round(lon, 4), round(lat, 4), year, cls, species_name(row)]
             seen += 1
             if len(reservoir) < args.n:
                 reservoir.append(rec)
@@ -72,16 +72,18 @@ def main() -> None:
         sys.exit("Hiç geçerli kayıt bulunamadı. Sütun adlarını kontrol edin.")
 
     reservoir.sort(key=lambda o: o[2])
+    species, reservoir = index_species(reservoir)
     years = [o[2] for o in reservoir]
     meta = {
         "source": f"GBIF Occurrence Download doi.org/{args.doi} · {seen} kayıttan {len(reservoir)} örnek",
         "citation": f"GBIF.org (2 September 2026) GBIF Occurrence Download https://doi.org/{args.doi}",
         "classes": CLASSES,
+        "species": species,
         "yearMin": min(years),
         "yearMax": max(years),
         "count": len(reservoir),
     }
-    print(f"{seen} geçerli, {skipped} atlanan satır", file=sys.stderr)
+    print(f"{seen} geçerli, {skipped} atlanan satır, {len(species)} farklı tür", file=sys.stderr)
     write_outputs(ROOT / "data", meta, reservoir)
 
 

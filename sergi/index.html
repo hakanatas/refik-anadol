@@ -42,6 +42,25 @@
     #home { position: absolute; left: 32px; top: 74px; font-size: 11px; letter-spacing: 0.18em;
       text-transform: uppercase; color: rgba(255,255,255,0.28); text-decoration: none; pointer-events: auto; }
     #home:hover { color: rgba(255,255,255,0.7); }
+    /* Tür kartı: işaret edilen ışığın gerçek kaydı */
+    #card { position: fixed; z-index: 4; pointer-events: none; opacity: 0; transition: opacity 0.25s;
+      background: rgba(6,6,10,0.88); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px;
+      padding: 10px 13px 9px; min-width: 170px; max-width: 260px; backdrop-filter: blur(6px); }
+    #card.show { opacity: 1; }
+    #card .n { font-size: 15px; font-weight: 400; color: #fff; line-height: 1.25; }
+    #card .s { font-size: 12px; font-style: italic; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    #card .m { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.45);
+      margin-top: 7px; display: flex; gap: 8px; align-items: center; font-variant-numeric: tabular-nums; }
+    #card .m i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px currentColor; }
+    #ring { position: fixed; z-index: 3; pointer-events: none; width: 18px; height: 18px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.7); transform: translate(-50%, -50%); opacity: 0; transition: opacity 0.25s; }
+    #ring.show { opacity: 1; animation: pulse 1.4s ease-out infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.45); } 100% { box-shadow: 0 0 0 14px rgba(255,255,255,0); } }
+    #zoom { position: absolute; left: 34px; bottom: 160px; font-size: 11px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: rgba(255,255,255,0.4); display: none; }
+    #zoom.show { display: block; }
+    #cam { position: absolute; right: 32px; top: 70px; font-size: 11px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: rgba(255,255,255,0.3); }
     #hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
       font-size: 11px; letter-spacing: 0.12em; color: rgba(255,255,255,0.35);
       white-space: nowrap; transition: opacity 1s; }
@@ -167,11 +186,15 @@
     <div id="title">FTC 24230 AG Robotik · Biyoçeşitlilik<b>Akışkan Tür Haritası</b></div>
     <div id="source"></div>
     <div id="mute"></div>
+    <div id="cam"></div>
+    <div id="zoom"></div>
     <a id="home" href="../index.html">← giriş</a>
     <div id="count"></div>
+    <div id="card"><div class="n"></div><div class="s"></div><div class="m"></div></div>
+    <div id="ring"></div>
     <div id="year"></div>
     <div id="legend"></div>
-    <div id="hint">boşluk: durdur · ← →: yıl · ↑ ↓: hız · 1-5: sınıf · F: tam ekran · H: yazıları gizle · R: baştan · I: giriş · M: ses · S: kaydet</div>
+    <div id="hint">boşluk: durdur · ← →: yıl · ↑ ↓: hız · 1-5: sınıf · F: tam ekran · H: yazıları gizle · R: baştan · I: giriş · M: ses · Z: yakın bakış · K: kamera · S: kaydet</div>
     <div id="paused">durduruldu</div>
     <div id="fps"></div>
   </div>
@@ -182,6 +205,7 @@
   <!-- Veri dosyaları JS olarak yüklenir; böylece index.html çift tıklamayla, sunucusuz çalışır. -->
   <script src="../data/turkey_outline.js"></script>
   <script src="../data/observations.js"></script>
+  <script src="../data/tur_adlari.js"></script>
   <script src="sound.js"></script>
   <script src="sketch.js"></script>
 </body>

@@ -47,6 +47,11 @@ const CONFIG = {
   mouseForce: 0.9,
   sound: 1,              // 1: veriden üretilen ses açık (sound.js), 0 kapalı
   volume: 0.6,           // ana ses düzeyi 0..1
+  cards: 1,              // 1: fare/dokunuşla ışığa yaklaşınca tür kartı görünür
+  cardRadius: 22,        // kart için en yakın parçacık arama yarıçapı (px)
+  zoomSpan: 2.6,         // Z ile yakın bakış: görünen boylam genişliği (derece)
+  camera: 0,             // 1: açılışta kamera etkileşimi dene (K tuşu da açar)
+  cameraForce: 1.6,      // hareketin parçacıkları itme gücü
 };
 
 const PALETTE = [
@@ -83,7 +88,8 @@ let rng = makeRng(CONFIG.seed);
 
 // ---- Veri -------------------------------------------------------------------
 let DATA, N, yearMin, yearMax, classes;
-let oLon, oLat, oYear, oCls;      // ham gözlemler
+let oLon, oLat, oYear, oCls, oSp; // ham gözlemler (oSp: tür indeksi, yoksa -1)
+let speciesList = [];
 let oX, oY;                       // ekran koordinatları (yeniden boyutlanınca güncellenir)
 let yearStart;                    // yearStart[y - yearMin] = o yıldan itibaren ilk indeks
 let clsIdx = [];                  // clsIdx[c] = o sınıfın gözlem indeksleri (yıla göre sıralı)
@@ -91,7 +97,7 @@ let clsYearStart = [];            // clsYearStart[c][y - yearMin] = clsIdx[c] i�
 const enabled = [true, true, true, true, true];
 
 // ---- Parçacıklar ------------------------------------------------------------
-let px, py, pvx, pvy, phx, phy, plife, pcls, palive;
+let px, py, pvx, pvy, phx, phy, plife, pcls, palive, pobs;
 let aliveCount = 0;
 
 // ---- Akış alanı -------------------------------------------------------------
@@ -113,7 +119,9 @@ let leaveTimer = null;
 let lastSpawn = -1;   // son doğan parçacığın gözlem indeksi (ses için)
 
 // ---- Projeksiyon ------------------------------------------------------------
-const proj = { lonMin: 25.6, lonMax: 45.2, latMin: 35.6, latMax: 42.4, k: Math.cos(39 * Math.PI / 180) };
+const FULL = { lonMin: 25.6, lonMax: 45.2, latMin: 35.6, latMax: 42.4 };
+const proj = { ...FULL, k: Math.cos(39 * Math.PI / 180) };
+let zoomed = false;
 
 // ---- Etkileşim ve arayüz ----------------------------------------------------
 let overlayVisible = true;
@@ -158,6 +166,8 @@ function setup() {
     intro.remove();
   }
   updateMuteUi();
+  applyFocusParam();
+  if (CONFIG.camera) toggleCamera();
 }
 
 // Satırların CSS'teki temel gecikmeleri (saniye); harf stilleri bunun üstüne dağılır
@@ -343,9 +353,11 @@ function loadData() {
   yearMax = DATA.meta.yearMax ?? obs[N - 1][2];
 
   oLon = new Float32Array(N); oLat = new Float32Array(N);
-  oYear = new Int16Array(N); oCls = new Uint8Array(N);
+  oYear = new Int16Array(N); oCls = new Uint8Array(N); oSp = new Int32Array(N);
+  speciesList = DATA.meta.species || [];
   for (let i = 0; i < N; i++) {
     oLon[i] = obs[i][0]; oLat[i] = obs[i][1]; oYear[i] = obs[i][2]; oCls[i] = obs[i][3];
+    oSp[i] = obs[i].length > 4 ? obs[i][4] : -1;
   }
   oX = new Float32Array(N); oY = new Float32Array(N);
 
@@ -429,7 +441,7 @@ function initParticles() {
   px = new Float32Array(P); py = new Float32Array(P);
   pvx = new Float32Array(P); pvy = new Float32Array(P);
   phx = new Float32Array(P); phy = new Float32Array(P);
-  plife = new Uint16Array(P); pcls = new Uint8Array(P); palive = new Uint8Array(P);
+  plife = new Uint16Array(P); pcls = new Uint8Array(P); palive = new Uint8Array(P); pobs = new Int32Array(P);
   aliveCount = 0;
 }
 
@@ -463,7 +475,7 @@ function spawn(i) {
   if (b - a <= 0) { a = 0; }
   if (b - a <= 0) return false;
   const j = clsIdx[c][a + Math.floor(rng() * (b - a))];
-  lastSpawn = j;
+  lastSpawn = j; pobs[i] = j;
   const jit = 4;   // aynı koordinatta yığılan kayıtları (popüler gözlem noktaları) hafifçe dağıt
   px[i] = oX[j] + (rng() - 0.5) * jit; py[i] = oY[j] + (rng() - 0.5) * jit;
   phx[i] = px[i]; phy[i] = py[i];
@@ -530,6 +542,7 @@ function draw() {
 
     let ax = fx[f] * CONFIG.flowForce + (phx[i] - x) * CONFIG.homePull;
     let ay = fy[f] * CONFIG.flowForce + (phy[i] - y) * CONFIG.homePull;
+    if (cam.active && mx) { ax += mx[f] * CONFIG.cameraForce; ay += my[f] * CONFIG.cameraForce; }
 
     if (useMouse) {
       const dx = x - mouseX, dy = y - mouseY, d2 = dx * dx + dy * dy;
@@ -561,6 +574,8 @@ function draw() {
   }
   ctx.globalCompositeOperation = 'source-over';
 
+  if (cam.active) updateCamera();
+  if (CONFIG.cards) updateCard();
   updateUi();
 }
 
@@ -697,9 +712,136 @@ function keyPressed() {
   if (k === 'l') { CONFIG.outlineBrightness = CONFIG.outlineBrightness > 0 ? 0 : 0.11; drawMapLayer(); }
   if (k === 's') savePng();
   if (k === 'd') { showFps = !showFps; ui.fps.classList.toggle('show', showFps); }
+  if (k === 'z') toggleZoom();
+  if (k === 'k') toggleCamera();
 }
 
 function mouseMoved() { mouseLastMove = millis(); }
+
+// =============================================================================
+// Tür kartı: imlece en yakın canlı parçacığın gerçek kaydı
+
+const cardEl = { box: null, ring: null, n: null, s: null, m: null, last: -1 };
+function updateCard() {
+  if (!cardEl.box) {
+    cardEl.box = document.getElementById('card'); cardEl.ring = document.getElementById('ring');
+    cardEl.n = cardEl.box.querySelector('.n'); cardEl.s = cardEl.box.querySelector('.s'); cardEl.m = cardEl.box.querySelector('.m');
+  }
+  const fresh = (millis() - mouseLastMove) < 3000 && !introActive;
+  if (!fresh || mouseX <= 0 || mouseY <= 0) { cardEl.box.classList.remove('show'); cardEl.ring.classList.remove('show'); cardEl.last = -1; return; }
+  const r2 = CONFIG.cardRadius * CONFIG.cardRadius;
+  let best = -1, bd = r2;
+  for (let i = 0; i < CONFIG.particles; i++) {
+    if (!palive[i]) continue;
+    const dx = px[i] - mouseX, dy = py[i] - mouseY, d = dx * dx + dy * dy;
+    if (d < bd) { bd = d; best = i; }
+  }
+  if (best < 0) { cardEl.box.classList.remove('show'); cardEl.ring.classList.remove('show'); cardEl.last = -1; return; }
+  const j = pobs[best];
+  if (j !== cardEl.last) {
+    cardEl.last = j;
+    const sp = oSp[j] >= 0 && speciesList[oSp[j]] ? speciesList[oSp[j]] : '';
+    const tr = sp && window.TUR_ADLARI ? window.TUR_ADLARI[sp] : '';
+    const cls = classes[oCls[j]];
+    cardEl.n.textContent = tr || sp || cls;
+    cardEl.s.textContent = tr ? sp : (sp ? cls : 'tür adı veri dosyasında yok');
+    const [R, G, B] = PALETTE[oCls[j]];
+    cardEl.m.innerHTML = `<i style="color:rgb(${R},${G},${B});background:rgb(${R},${G},${B})"></i>${cls} · ${oYear[j]} · ${oLat[j].toFixed(2)}°K ${oLon[j].toFixed(2)}°D`;
+  }
+  const bw = cardEl.box.offsetWidth || 200, bh = cardEl.box.offsetHeight || 70;
+  let cx = mouseX + 18, cy = mouseY + 18;
+  if (cx + bw > width - 12) cx = mouseX - bw - 18;
+  if (cy + bh > height - 12) cy = mouseY - bh - 18;
+  cardEl.box.style.left = cx + 'px'; cardEl.box.style.top = cy + 'px';
+  cardEl.ring.style.left = px[best] + 'px'; cardEl.ring.style.top = py[best] + 'px';
+  cardEl.box.classList.add('show'); cardEl.ring.classList.add('show');
+}
+
+// =============================================================================
+// Yakın bakış: Z ile imlecin altındaki bölgeye yaklaş, tekrar Z ile geri
+
+function toggleZoom() {
+  if (zoomed) { Object.assign(proj, FULL); zoomed = false; }
+  else {
+    const lon = proj.lonMin + (mouseX - proj.ox) / (proj.k * proj.s);
+    const lat = proj.latMax - (mouseY - proj.oy) / proj.s;
+    const spanLon = CONFIG.zoomSpan, spanLat = spanLon * proj.k * 0.62;
+    proj.lonMin = lon - spanLon / 2; proj.lonMax = lon + spanLon / 2;
+    proj.latMin = lat - spanLat / 2; proj.latMax = lat + spanLat / 2;
+    zoomed = true;
+  }
+  fitProjection(); projectAll(); drawMapLayer(); clear();
+  for (let i = 0; i < CONFIG.particles; i++) palive[i] = 0;   // hepsi yeni yerinde doğsun
+  aliveCount = 0;
+  const z = document.getElementById('zoom');
+  if (zoomed) {
+    z.textContent = `yakın bakış · ${((proj.latMin + proj.latMax) / 2).toFixed(1)}°K ${((proj.lonMin + proj.lonMax) / 2).toFixed(1)}°D · Z ile geri`;
+    z.classList.add('show');
+  } else z.classList.remove('show');
+}
+
+// URL: ?focus=boylam,enlem[,genişlik]  -> açılışta yakın bakış
+function applyFocusParam() {
+  const q = new URLSearchParams(location.search).get('focus');
+  if (!q) return;
+  const [lon, lat, span] = q.split(',').map(Number);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+  if (Number.isFinite(span)) CONFIG.zoomSpan = span;
+  mouseX = toX(lon); mouseY = toY(lat);
+  toggleZoom();
+}
+
+// =============================================================================
+// Kamera: izleyicinin hareketi parçacıkları iter (kare farkıyla hareket algılama)
+
+const cam = { active: false, video: null, cv: null, g: null, prev: null, w: 32, h: 18 };
+let mx, my;   // hareket kuvveti alanı (akış hücreleriyle aynı çözünürlük)
+
+async function toggleCamera() {
+  const el = document.getElementById('cam');
+  if (cam.active) {
+    cam.active = false;
+    if (cam.video && cam.video.srcObject) cam.video.srcObject.getTracks().forEach(t => t.stop());
+    el.textContent = ''; return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { el.textContent = 'kamera desteklenmiyor'; return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 180, facingMode: 'user' }, audio: false });
+    cam.video = document.createElement('video'); cam.video.srcObject = stream; cam.video.muted = true; cam.video.playsInline = true;
+    await cam.video.play();
+    cam.cv = document.createElement('canvas'); cam.cv.width = cam.w; cam.cv.height = cam.h;
+    cam.g = cam.cv.getContext('2d', { willReadFrequently: true });
+    cam.prev = null; cam.active = true;
+    el.textContent = 'kamera açık · K';
+  } catch (e) { el.textContent = 'kamera izni yok'; }
+}
+
+function updateCamera() {
+  if (!mx || mx.length !== cols * rows) { mx = new Float32Array(cols * rows); my = new Float32Array(cols * rows); }
+  for (let i = 0; i < mx.length; i++) { mx[i] *= 0.86; my[i] *= 0.86; }   // sönüm
+  if (frameCount % 2 || !cam.video || cam.video.readyState < 2) return;
+  cam.g.save(); cam.g.scale(-1, 1); cam.g.drawImage(cam.video, -cam.w, 0, cam.w, cam.h); cam.g.restore();   // aynalı
+  const d = cam.g.getImageData(0, 0, cam.w, cam.h).data;
+  const cur = new Float32Array(cam.w * cam.h);
+  for (let i = 0; i < cur.length; i++) cur[i] = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3;
+  if (cam.prev) {
+    for (let cy = 0; cy < cam.h; cy++) for (let cx = 0; cx < cam.w; cx++) {
+      const k = cy * cam.w + cx, diff = Math.abs(cur[k] - cam.prev[k]);
+      if (diff < 28) continue;
+      const str = Math.min(1, (diff - 28) / 60);
+      const sx = (cx + 0.5) / cam.w * width, sy = (cy + 0.5) / cam.h * height;
+      const c0 = (sx / CONFIG.cell) | 0, r0 = (sy / CONFIG.cell) | 0, R = 4;
+      for (let r = Math.max(0, r0 - R); r <= Math.min(rows - 1, r0 + R); r++)
+        for (let c = Math.max(0, c0 - R); c <= Math.min(cols - 1, c0 + R); c++) {
+          const dx = c - c0, dy = r - r0, dist = Math.hypot(dx, dy) || 1;
+          if (dist > R) continue;
+          const w = str * (1 - dist / R) / dist;
+          const f = r * cols + c; mx[f] += dx * w; my[f] += dy * w;
+        }
+    }
+  }
+  cam.prev = cur;
+}
 function mousePressed() { armSound(); }
 function touchStarted() { armSound(); }
 function touchMoved() { mouseLastMove = millis(); return false; }

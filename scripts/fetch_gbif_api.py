@@ -26,7 +26,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from common import CLASSES, map_class, write_outputs
+from common import CLASSES, index_species, map_class, species_name, write_outputs
 
 ROOT = Path(__file__).resolve().parent.parent
 API = "https://api.gbif.org/v1/occurrence/search"
@@ -99,7 +99,7 @@ def main() -> None:
                 if not (25.0 <= lon <= 45.5 and 35.0 <= lat <= 42.5):
                     continue
                 cls = map_class(rec.get("class"), rec.get("kingdom"))
-                obs.append([round(lon, 4), round(lat, 4), y, cls])
+                obs.append([round(lon, 4), round(lat, 4), y, cls, species_name(rec)])
                 got += 1
                 if got >= quota[y]:
                     break
@@ -113,11 +113,13 @@ def main() -> None:
         raise SystemExit("Hiç kayıt gelmedi.")
 
     obs.sort(key=lambda o: o[2])
+    species, obs = index_species(obs)
     years = [o[2] for o in obs]
     meta = {
         "source": f"GBIF API, {args.country}, {len(obs)} örnek / {total_available} kayıt, "
                   f"{time.strftime('%Y-%m-%d')}",
         "classes": CLASSES,
+        "species": species,
         "yearMin": min(years),
         "yearMax": max(years),
         "count": len(obs),
