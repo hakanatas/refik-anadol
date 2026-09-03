@@ -102,6 +102,8 @@ let holdTimer = 0;
 let resetting = 0;   // >0 iken güçlü solma ve yeniden başlama geçişi
 let introActive = false;
 let introTimer = null;
+let introShownAt = 0;   // giriş gösterim zamanı (ms), erken çıkışta hangi harflerin belirmediğini bilmek için
+let leaveTimer = null;
 let lastSpawn = -1;   // son doğan parçacığın gözlem indeksi (ses için)
 
 // ---- Projeksiyon ------------------------------------------------------------
@@ -218,7 +220,11 @@ function showIntro() {
   const el = document.getElementById('intro');
   if (!el) return;
   prepareIntro(el);
+  clearTimeout(leaveTimer);
+  el.classList.remove('leave');
+  el.querySelectorAll('.ch.ghost').forEach(c => c.classList.remove('ghost'));
   if (el.classList.contains('letters')) layoutLetters(el);   // her gösterimde yeni dağılım
+  introShownAt = millis();
   introActive = true;
   playing = true;
   ui.paused.classList.remove('show');
@@ -249,12 +255,45 @@ function hideIntro() {
   const el = document.getElementById('intro');
   if (!el || !introActive) return;
   clearTimeout(introTimer);
-  el.classList.add('hidden');
   introActive = false;
   currentYear = yearMin;
   holdTimer = 0;
   clear();
-  if (overlayVisible) ui.overlay.classList.remove('hidden');
+
+  if (!el.classList.contains('letters')) {
+    el.classList.add('hidden');
+    if (overlayVisible) ui.overlay.classList.remove('hidden');
+    return;
+  }
+
+  // Harfler akış alanı yönünde dağılır. Yön, harfin ekrandaki yerine düşen
+  // akış hücresinden alınır: yazı, haritayı süren rüzgara kapılır.
+  const elapsed = (millis() - introShownAt) / 1000;
+  const chars = [...el.querySelectorAll('.ch')];
+  let maxEnd = 0;
+  for (const c of chars) {
+    const started = parseFloat(c.style.getPropertyValue('--d')) || 0;
+    if (started > elapsed - 0.3) { c.classList.add('ghost'); continue; }   // henüz belirmemiş harf
+    const r = c.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const col = Math.min(cols - 1, Math.max(0, (cx / CONFIG.cell) | 0));
+    const row = Math.min(rows - 1, Math.max(0, (cy / CONFIG.cell) | 0));
+    const f = row * cols + col;
+    const dist = 60 + rng() * 90;
+    const delay = rng() * 1.1, dur = 1.6 + rng() * 1.0;
+    c.style.setProperty('--lx', (fx[f] * dist).toFixed(1) + 'px');
+    c.style.setProperty('--ly', (fy[f] * dist).toFixed(1) + 'px');
+    c.style.setProperty('--ld', delay.toFixed(2) + 's');
+    c.style.setProperty('--ldur', dur.toFixed(2) + 's');
+    maxEnd = Math.max(maxEnd, delay + dur);
+  }
+  el.classList.add('leave');
+  clearTimeout(leaveTimer);
+  leaveTimer = setTimeout(() => {
+    el.classList.add('hidden');
+    el.classList.remove('leave');
+    if (overlayVisible && !introActive) ui.overlay.classList.remove('hidden');
+  }, Math.ceil(maxEnd * 1000) + 100);
 }
 
 function loadData() {

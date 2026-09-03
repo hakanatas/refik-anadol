@@ -28,6 +28,9 @@ Yazıların geliş biçimi `CONFIG.introStyle` ile seçilir:
 - `fade`: satırlar bütün halinde soluktan netliğe gelir. Sakin, klasik.
 - `type`: daktilo, harf harf. Mekanik durur; denemek isteyenler için bırakıldı.
 
+Harf stillerinde çıkış da harf harftir: yazı bitince harfler, haritayı süren akış
+alanının yönünde sürüklenip bulanıklaşarak söner; harita altta o sırada başlar.
+
 Metni değiştirmek için `index.html` içindeki `<div id="intro">` bölümünü düzenleyin;
 takım adınızı en üstteki küçük satıra yazın. Süre `CONFIG.introSeconds` ile
 ayarlanır (0 kapatır), `introEachLoop: 0` girişi yalnızca açılışta gösterir.
