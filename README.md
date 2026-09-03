@@ -21,6 +21,13 @@ herhangi bir tuş erken başlatır. **I** tuşu girişi yeniden gösterir.
 
 ![Giriş](docs/onizleme-giris.png)
 
+Yazıların geliş biçimi `CONFIG.introStyle` ile seçilir:
+
+- `settle` (varsayılan): her harf soluk, bulanık ve yerinden kaymış başlar, rastgele sırayla
+  yerine oturur. Haritadaki parçacıkların dağınık doğup şekil alması gibi; sergi diliyle uyumlu.
+- `fade`: satırlar bütün halinde soluktan netliğe gelir. Sakin, klasik.
+- `type`: daktilo, harf harf. Mekanik durur; denemek isteyenler için bırakıldı.
+
 Metni değiştirmek için `index.html` içindeki `<div id="intro">` bölümünü düzenleyin;
 takım adınızı en üstteki küçük satıra yazın. Süre `CONFIG.introSeconds` ile
 ayarlanır (0 kapatır), `introEachLoop: 0` girişi yalnızca açılışta gösterir.

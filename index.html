@@ -88,8 +88,25 @@
       45%  { opacity: 0.45; filter: blur(1.5px); }
       100% { opacity: 1; filter: blur(0); transform: none; }
     }
+    /* Harf düzeyinde stiller (CONFIG.introStyle). Harfler JS ile .ch span'larına sarılır. */
+    #intro.letters .step { opacity: 1; filter: none; transform: none; animation: none; }
+    #intro.letters .word { display: inline-block; white-space: nowrap; }
+    #intro.letters .ch { display: inline-block; }
+    /* settle: her harf soluk, bulanık ve yerinden kaymış başlar, rastgele sırayla yerine oturur */
+    #intro.settle .ch { opacity: 0.04; filter: blur(3px); transform: translate(var(--dx, 0), var(--dy, 0)); }
+    #intro.settle.play .ch { animation: settle var(--dur, 2.6s) cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
+      animation-delay: var(--d, 0s); }
+    @keyframes settle {
+      40%  { opacity: 0.5; filter: blur(1px); }
+      100% { opacity: 1; filter: blur(0); transform: none; }
+    }
+    /* type: daktilo, harfler sırayla anında belirir */
+    #intro.type .ch { opacity: 0; }
+    #intro.type.play .ch { animation: appear 0.04s steps(1) forwards; animation-delay: var(--d, 0s); }
+    @keyframes appear { to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) {
-      #intro .step { opacity: 1; filter: none; transform: none; animation: none !important; }
+      #intro .step, #intro .ch { opacity: 1 !important; filter: none !important; transform: none !important;
+        animation: none !important; }
     }
     #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
       font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.4); }

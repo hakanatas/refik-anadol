@@ -36,6 +36,9 @@ const CONFIG = {
   holdSeconds: 8,        // son yılda bekleme, sonra baştan
   introSeconds: 40,      // giriş ekranı süresi; tuş veya dokunuş erken başlatır (0 kapalı)
   introEachLoop: 1,      // 1: her döngü başında giriş yeniden gösterilir, 0: yalnızca açılışta
+  introStyle: 'settle',  // 'settle': harfler dağınık ve bulanıktan yerine oturur (harita gibi)
+                         // 'fade': satırlar bütün olarak soluktan netliğe gelir
+                         // 'type': daktilo, harf harf
   outlineBrightness: 0.11, // kıyı çizgisi parlaklığı, ayrı alt katmanda (0 kapalı)
   mouseRadius: 140,      // fare/hareket etkileşimi yarıçapı (0 kapalı)
   mouseForce: 0.9,
@@ -149,10 +152,73 @@ function setup() {
   updateMuteUi();
 }
 
-// Giriş ekranı: harita arkada karanlıkta bekler, metin satır satır belirir.
+// Satırların CSS'teki temel gecikmeleri (saniye); harf stilleri bunun üstüne dağılır
+const STEP_DELAYS = [0.6, 1.6, 4.4, 8.6, 12.8, 16.6, 19.0];
+
+// Metin düğümlerini kelime ve harf span'larına sarar; içi metin olmayan öğelere de .ch verir
+function wrapLetters(root) {
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      if (!node.textContent.trim()) return;
+      const frag = document.createDocumentFragment();
+      node.textContent.split(/(\s+)/).forEach(part => {
+        if (!part) return;
+        if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(' ')); return; }
+        const w = document.createElement('span'); w.className = 'word';
+        for (const chr of part) { const c = document.createElement('span'); c.className = 'ch'; c.textContent = chr; w.appendChild(c); }
+        frag.appendChild(w);
+      });
+      node.parentNode.replaceChild(frag, node);
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE || node.classList.contains('bar')) return;
+    if (node.tagName === 'I') { node.classList.add('ch'); return; }
+    [...node.childNodes].forEach(walk);
+  };
+  walk(root);
+}
+
+// Harf gecikmelerini stile göre dağıtır
+function layoutLetters(el) {
+  const style = CONFIG.introStyle;
+  const steps = [...el.querySelectorAll('.step')];
+  let base = 0;
+  steps.forEach((step, k) => {
+    const chars = [...step.querySelectorAll('.ch')];
+    if (style === 'type') {
+      base = k === 0 ? 0.6 : base;
+      const rate = step.tagName === 'H1' ? 0.11 : 0.026;
+      chars.forEach((c, i) => c.style.setProperty('--d', (base + i * rate).toFixed(3) + 's'));
+      base += chars.length * rate + 0.9;
+    } else {
+      const b = STEP_DELAYS[k] ?? (k * 3);
+      const spread = step.tagName === 'H1' ? 2.8 : 2.2;
+      chars.forEach(c => {
+        c.style.setProperty('--d', (b + rng() * spread).toFixed(3) + 's');
+        c.style.setProperty('--dx', ((rng() - 0.5) * 22).toFixed(1) + 'px');
+        c.style.setProperty('--dy', ((rng() - 0.5) * 14).toFixed(1) + 'px');
+        c.style.setProperty('--dur', (2.0 + rng() * 1.4).toFixed(2) + 's');
+      });
+    }
+  });
+}
+
+let introPrepared = false;
+function prepareIntro(el) {
+  if (introPrepared) return;
+  introPrepared = true;
+  if (CONFIG.introStyle === 'settle' || CONFIG.introStyle === 'type') {
+    wrapLetters(el.querySelector('.inner'));
+    el.classList.add('letters', CONFIG.introStyle);
+  }
+}
+
+// Giriş ekranı: harita arkada karanlıkta bekler, metin belirir.
 function showIntro() {
   const el = document.getElementById('intro');
   if (!el) return;
+  prepareIntro(el);
+  if (el.classList.contains('letters')) layoutLetters(el);   // her gösterimde yeni dağılım
   introActive = true;
   playing = true;
   ui.paused.classList.remove('show');
