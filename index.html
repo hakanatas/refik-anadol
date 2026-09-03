@@ -100,15 +100,16 @@
       40%  { opacity: 0.5; filter: blur(1px); }
       100% { opacity: 1; filter: blur(0); transform: none; }
     }
-    /* type: daktilo. Harf belirir, sağında ince bir imleç durur; sıra sonraki harfe geçince imleç
-       oraya taşınır. Paragraf sonunda imleç bekler (--cd), sonra kaybolur. */
-    #intro.type .ch { opacity: 0; border-right: 2px solid transparent; margin-right: -2px; }
-    #intro.type.play .ch { animation: typeIn var(--cd, 0.05s) steps(1, end) forwards; animation-delay: var(--d, 0s); }
-    @keyframes typeIn {
-      0%   { opacity: 1; border-right-color: rgba(255,255,255,0.75); }
-      100% { opacity: 1; border-right-color: transparent; }
-    }
-    #intro.type .key i.ch { border: 0; margin: 0; }
+    /* type: daktilo. Harfler sırayla görünür olur; imleç tek bir öğedir ve JS ile taşınır
+       (CSS animasyon bitişine güvenmek bazı tarayıcılarda her harfte kalıntı bırakıyordu). */
+    #intro .inner { position: relative; }
+    #intro.type .ch { opacity: 0; }
+    #intro.type.play .ch { animation: appear 0.02s steps(1, end) forwards; animation-delay: var(--d, 0s); }
+    @keyframes appear { from { opacity: 1; } to { opacity: 1; } }
+    #caret { position: absolute; width: 2px; background: rgba(255,255,255,0.8); display: none;
+      pointer-events: none; }
+    #intro.type.play #caret { display: block; }
+    #intro.leave #caret { display: none; }
     /* Çıkış: harfler haritayı süren akış alanına kapılıp dağılır, bulanıklaşır, söner.
        Arka plan saydamlaşır; harita altta başlamış olur. */
     #intro.leave { background: transparent; transition: none; pointer-events: none; }
@@ -135,6 +136,7 @@
   <!-- GİRİŞ EKRANI: Metinleri buradan değiştirin. Takım adını .eyebrow satırına yazın. -->
   <div id="intro">
     <div class="inner">
+      <span id="caret"></span>
       <div class="step eyebrow">FTC 24230 AG Robotik · Biyoçeşitlilik</div>
       <h1 class="step">Akışkan Tür Haritası</h1>
       <p class="step">Bu duvarda gördüğünüz her ışık, Türkiye'de bir canlının kaydedildiği andır.

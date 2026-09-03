@@ -106,6 +106,9 @@ let resetting = 0;   // >0 iken güçlü solma ve yeniden başlama geçişi
 let introActive = false;
 let introTimer = null;
 let introShownAt = 0;   // giriş gösterim zamanı (ms), erken çıkışta hangi harflerin belirmediğini bilmek için
+let typeSchedule = [];  // daktilo: [{el, t}] harf ve görünme zamanı (sn), sıralı
+let typeEnd = 0;        // daktilo: son harfin görünme zamanı (sn)
+let typePtr = 0;
 let leaveTimer = null;
 let lastSpawn = -1;   // son doğan parçacığın gözlem indeksi (ses için)
 
@@ -183,6 +186,24 @@ function wrapLetters(root) {
   walk(root);
 }
 
+// Daktilo imleci: tek öğe, son görünen harfin sağ kenarına taşınır; beklemede yanıp söner.
+function updateCaret() {
+  const caret = document.getElementById('caret');
+  if (!caret || !typeSchedule.length) return;
+  const elapsed = (millis() - introShownAt) / 1000;
+  while (typePtr < typeSchedule.length - 1 && typeSchedule[typePtr + 1].t <= elapsed) typePtr++;
+  const cur = typeSchedule[typePtr];
+  if (elapsed < cur.t || elapsed > typeEnd - 0.4) { caret.style.opacity = '0'; return; }
+  const next = typeSchedule[typePtr + 1];
+  const waiting = !next || next.t - elapsed > 0.5;
+  caret.style.opacity = waiting ? (Math.floor(elapsed * 2) % 2 ? '0' : '1') : '1';
+  const inner = caret.parentElement.getBoundingClientRect();
+  const r = cur.el.getBoundingClientRect();
+  caret.style.left = (r.right - inner.left + 1) + 'px';
+  caret.style.top = (r.top - inner.top) + 'px';
+  caret.style.height = r.height + 'px';
+}
+
 // Harf gecikmelerini stile göre dağıtır. Daktiloda son harfin bittiği zamanı döndürür.
 function layoutLetters(el) {
   const style = CONFIG.introStyle;
@@ -191,16 +212,18 @@ function layoutLetters(el) {
   steps.forEach((step, k) => {
     const chars = [...step.querySelectorAll('.ch')];
     if (style === 'type') {
+      if (k === 0) { typeSchedule = []; typePtr = 0; }
       const isH1 = step.tagName === 'H1';
       const rate = isH1 ? 0.11 : CONFIG.typeRate;
       // paragraf sonunda uzun, başlık ve küçük satırlardan sonra kısa bekleme
       const pause = step.tagName === 'P' ? CONFIG.typePause : (isH1 ? 1.4 : 1.0);
       chars.forEach((c, i) => {
-        c.style.setProperty('--d', (base + i * rate).toFixed(3) + 's');
-        // son harfin imleci bekleme süresince kalır
-        c.style.setProperty('--cd', (i === chars.length - 1 ? pause : rate * 1.02).toFixed(3) + 's');
+        const tt = base + i * rate;
+        c.style.setProperty('--d', tt.toFixed(3) + 's');
+        typeSchedule.push({ el: c, t: tt });
       });
       base += chars.length * rate + pause;
+      typeEnd = base;
     } else {
       const b = STEP_DELAYS[k] ?? (k * 3);
       const spread = step.tagName === 'H1' ? 2.8 : 2.2;
@@ -454,6 +477,7 @@ function spawn(i) {
 
 function draw() {
   if (!DATA) return;
+  if (introActive && CONFIG.introStyle === 'type') updateCaret();
   advanceTime();
 
   noiseT += CONFIG.noiseSpeed * (deltaTime / 16.67);
