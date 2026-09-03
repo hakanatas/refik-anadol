@@ -100,10 +100,15 @@
       40%  { opacity: 0.5; filter: blur(1px); }
       100% { opacity: 1; filter: blur(0); transform: none; }
     }
-    /* type: daktilo, harfler sırayla anında belirir */
-    #intro.type .ch { opacity: 0; }
-    #intro.type.play .ch { animation: appear 0.04s steps(1) forwards; animation-delay: var(--d, 0s); }
-    @keyframes appear { to { opacity: 1; } }
+    /* type: daktilo. Harf belirir, sağında ince bir imleç durur; sıra sonraki harfe geçince imleç
+       oraya taşınır. Paragraf sonunda imleç bekler (--cd), sonra kaybolur. */
+    #intro.type .ch { opacity: 0; border-right: 2px solid transparent; margin-right: -2px; }
+    #intro.type.play .ch { animation: typeIn var(--cd, 0.05s) steps(1, end) forwards; animation-delay: var(--d, 0s); }
+    @keyframes typeIn {
+      0%   { opacity: 1; border-right-color: rgba(255,255,255,0.75); }
+      100% { opacity: 1; border-right-color: transparent; }
+    }
+    #intro.type .key i.ch { border: 0; margin: 0; }
     /* Çıkış: harfler haritayı süren akış alanına kapılıp dağılır, bulanıklaşır, söner.
        Arka plan saydamlaşır; harita altta başlamış olur. */
     #intro.leave { background: transparent; transition: none; pointer-events: none; }

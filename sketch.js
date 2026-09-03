@@ -36,9 +36,12 @@ const CONFIG = {
   holdSeconds: 8,        // son yılda bekleme, sonra baştan
   introSeconds: 48,      // giriş ekranı süresi; tuş veya dokunuş erken başlatır (0 kapalı)
   introEachLoop: 1,      // 1: her döngü başında giriş yeniden gösterilir, 0: yalnızca açılışta
-  introStyle: 'settle',  // 'settle': harfler dağınık ve bulanıktan yerine oturur (harita gibi)
+  introStyle: 'type',    // 'type': daktilo, harf harf, imleçli; göz imleci izler, metin okunur
+                         // 'settle': harfler dağınık ve bulanıktan yerine oturur (harita gibi)
                          // 'fade': satırlar bütün olarak soluktan netliğe gelir
-                         // 'type': daktilo, harf harf
+  typeRate: 0.048,       // daktilo: harf başına saniye (0.048 ≈ 21 harf/sn, rahat okuma hızı)
+  typePause: 4.5,        // daktilo: paragraf sonunda imlecin bekleme süresi (sn)
+  introReadAfter: 12,    // daktilo: son satırdan sonra kalan okuma payı (sn); toplam süre buna göre uzar
   outlineBrightness: 0.11, // kıyı çizgisi parlaklığı, ayrı alt katmanda (0 kapalı)
   mouseRadius: 140,      // fare/hareket etkileşimi yarıçapı (0 kapalı)
   mouseForce: 0.9,
@@ -180,18 +183,24 @@ function wrapLetters(root) {
   walk(root);
 }
 
-// Harf gecikmelerini stile göre dağıtır
+// Harf gecikmelerini stile göre dağıtır. Daktiloda son harfin bittiği zamanı döndürür.
 function layoutLetters(el) {
   const style = CONFIG.introStyle;
   const steps = [...el.querySelectorAll('.step')];
-  let base = 0;
+  let base = 0.8;
   steps.forEach((step, k) => {
     const chars = [...step.querySelectorAll('.ch')];
     if (style === 'type') {
-      base = k === 0 ? 0.6 : base;
-      const rate = step.tagName === 'H1' ? 0.11 : 0.026;
-      chars.forEach((c, i) => c.style.setProperty('--d', (base + i * rate).toFixed(3) + 's'));
-      base += chars.length * rate + 0.9;
+      const isH1 = step.tagName === 'H1';
+      const rate = isH1 ? 0.11 : CONFIG.typeRate;
+      // paragraf sonunda uzun, başlık ve küçük satırlardan sonra kısa bekleme
+      const pause = step.tagName === 'P' ? CONFIG.typePause : (isH1 ? 1.4 : 1.0);
+      chars.forEach((c, i) => {
+        c.style.setProperty('--d', (base + i * rate).toFixed(3) + 's');
+        // son harfin imleci bekleme süresince kalır
+        c.style.setProperty('--cd', (i === chars.length - 1 ? pause : rate * 1.02).toFixed(3) + 's');
+      });
+      base += chars.length * rate + pause;
     } else {
       const b = STEP_DELAYS[k] ?? (k * 3);
       const spread = step.tagName === 'H1' ? 2.8 : 2.2;
@@ -203,6 +212,7 @@ function layoutLetters(el) {
       });
     }
   });
+  return base;
 }
 
 let introPrepared = false;
@@ -224,19 +234,23 @@ function showIntro() {
   el.classList.remove('leave');
   void el.offsetWidth;          // siyah zemin ve geçiş geri gelsin, sonra 'hidden' kalksın
   el.querySelectorAll('.ch.ghost').forEach(c => c.classList.remove('ghost'));
-  if (el.classList.contains('letters')) layoutLetters(el);   // her gösterimde yeni dağılım
+  let total = CONFIG.introSeconds;
+  if (el.classList.contains('letters')) {
+    const end = layoutLetters(el);   // her gösterimde yeni dağılım
+    if (CONFIG.introStyle === 'type') total = Math.max(total, end + CONFIG.introReadAfter);
+  }
   introShownAt = millis();
   introActive = true;
   playing = true;
   ui.paused.classList.remove('show');
   ui.overlay.classList.add('hidden');
-  el.style.setProperty('--intro', CONFIG.introSeconds + 's');
+  el.style.setProperty('--intro', total + 's');
   el.classList.remove('play');
   el.classList.remove('hidden');
   void el.offsetWidth;          // animasyonları sıfırlamak için yeniden akış
   el.classList.add('play');
   clearTimeout(introTimer);
-  introTimer = setTimeout(hideIntro, CONFIG.introSeconds * 1000);
+  introTimer = setTimeout(hideIntro, total * 1000);
 }
 
 // Tarayıcı sesi yalnızca kullanıcı hareketinden sonra açar.

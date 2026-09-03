@@ -23,13 +23,16 @@ herhangi bir tuş erken başlatır. **I** tuşu girişi yeniden gösterir.
 
 Yazıların geliş biçimi `CONFIG.introStyle` ile seçilir:
 
-- `settle` (varsayılan): her harf soluk, bulanık ve yerinden kaymış başlar, rastgele sırayla
-  yerine oturur. Haritadaki parçacıkların dağınık doğup şekil alması gibi; sergi diliyle uyumlu.
-- `fade`: satırlar bütün halinde soluktan netliğe gelir. Sakin, klasik.
-- `type`: daktilo, harf harf. Mekanik durur; denemek isteyenler için bırakıldı.
+- `type` (varsayılan): daktilo. Harfler okuma hızında sırayla belirir, sağlarında ince bir
+  imleç ilerler, paragraf sonunda imleç bekler. Sergide seçilen stil bu: insanlar bütün
+  halinde gelen metni okumuyor, imleci izleyen göz ise okuyor. Hız `typeRate`, paragraf
+  sonu beklemesi `typePause`, son satırdan sonraki pay `introReadAfter` ile ayarlanır;
+  toplam süre metnin uzunluğuna göre kendiliğinden hesaplanır.
+- `settle`: her harf soluk, bulanık ve yerinden kaymış başlar, rastgele sırayla yerine oturur.
+- `fade`: satırlar bütün halinde soluktan netliğe gelir.
 
-Harf stillerinde çıkış da harf harftir: yazı bitince harfler, haritayı süren akış
-alanının yönünde sürüklenip bulanıklaşarak söner; harita altta o sırada başlar.
+Harf stillerinde çıkış harf harftir: yazı bitince harfler, haritayı süren akış alanının
+yönünde sürüklenip bulanıklaşarak söner; harita altta o sırada başlar.
 
 Metni değiştirmek için `index.html` içindeki `<div id="intro">` bölümünü düzenleyin;
 takım adınızı en üstteki küçük satıra yazın. Süre `CONFIG.introSeconds` ile
