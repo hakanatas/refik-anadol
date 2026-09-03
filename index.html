@@ -4,181 +4,82 @@
   <meta charset="utf-8">
   <title>Akışkan Tür Haritası</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FTC 24230 AG Robotik: Türkiye'nin biyoçeşitliliğini veriden sanata ve matematiğe dönüştüren iki çalışma.">
   <style>
-    html, body { margin: 0; padding: 0; background: #000; color: #fff; overflow: hidden;
+    html, body { margin: 0; padding: 0; background: #000; color: #fff; min-height: 100%;
       font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-    canvas { display: block; }
-    /* Kıyı çizgisi katmanı: parçacık kanvasının altında, sabit. */
-    #map { position: fixed; inset: 0; z-index: 0; }
-    main, .p5Canvas { position: relative; z-index: 1; }
-    #overlay { z-index: 2; }
-    /* Yazılar kanvasın üstünde HTML katmanı olarak durur: keskin ve kolay biçimlenir. */
-    #overlay { position: fixed; inset: 0; pointer-events: none;
-      transition: opacity 0.6s ease; }
-    #overlay.hidden { opacity: 0; }
-    #title { position: absolute; top: 28px; left: 32px; font-size: 12px; letter-spacing: 0.28em;
-      text-transform: uppercase; color: rgba(255,255,255,0.45); }
-    #title b { display: block; margin-top: 6px; font-weight: 400; color: rgba(255,255,255,0.75);
-      letter-spacing: 0.32em; }
-    #year { position: absolute; left: 32px; bottom: 30px; font-size: 96px; font-weight: 200;
-      letter-spacing: 0.04em; line-height: 1; color: rgba(255,255,255,0.9);
-      font-variant-numeric: tabular-nums; }
-    #count { position: absolute; left: 34px; bottom: 138px; font-size: 13px; letter-spacing: 0.18em;
-      text-transform: uppercase; color: rgba(255,255,255,0.45); }
-    #legend { position: absolute; right: 32px; bottom: 34px; display: flex; flex-direction: column;
-      gap: 10px; align-items: flex-end; }
-    .chip { display: flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: 0.16em;
-      text-transform: uppercase; color: rgba(255,255,255,0.65); transition: opacity 0.3s; }
-    .chip.off { opacity: 0.22; text-decoration: line-through; }
-    .chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block;
-      box-shadow: 0 0 12px currentColor; }
-    .chip small { color: rgba(255,255,255,0.35); letter-spacing: 0.08em; }
-    .chip em { font-style: normal; color: rgba(255,255,255,0.35); letter-spacing: 0.06em;
-      font-variant-numeric: tabular-nums; min-width: 4.5em; text-align: right; }
-    #source { position: absolute; right: 32px; top: 30px; font-size: 11px; letter-spacing: 0.12em;
-      color: rgba(255,255,255,0.3); text-align: right; max-width: 40vw; }
-    #mute { position: absolute; right: 32px; top: 52px; font-size: 11px; letter-spacing: 0.18em;
-      text-transform: uppercase; color: rgba(255,255,255,0.3); }
-    #hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
-      font-size: 11px; letter-spacing: 0.12em; color: rgba(255,255,255,0.35);
-      white-space: nowrap; transition: opacity 1s; }
-    #hint.hidden { opacity: 0; }
-    #paused { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-      font-size: 12px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.4);
-      display: none; }
-    #paused.show { display: block; }
-    #fps { position: absolute; left: 32px; top: 50%; font-size: 11px; color: rgba(255,255,255,0.35);
-      font-variant-numeric: tabular-nums; display: none; }
-    #fps.show { display: block; }
-    /* Giriş ekranı: sergi başlarken ve her döngü sonunda gösterilir. Metni buradan düzenleyin. */
-    #intro { position: fixed; inset: 0; z-index: 3; background: #000; display: flex;
-      align-items: center; justify-content: center; padding: 6vh 8vw; box-sizing: border-box;
-      transition: opacity 1.4s ease; cursor: pointer; }
-    #intro.hidden { opacity: 0; pointer-events: none; }
-    #intro .inner { max-width: 640px; width: 100%; }
-    #intro .eyebrow { font-size: 12px; letter-spacing: 0.32em; text-transform: uppercase;
-      color: rgba(255,255,255,0.4); margin-bottom: 26px; }
-    #intro h1 { font-size: clamp(34px, 5vw, 64px); font-weight: 200; letter-spacing: 0.06em;
-      line-height: 1.05; margin: 0 0 38px; color: rgba(255,255,255,0.92); text-wrap: balance; }
-    #intro p { font-size: clamp(15px, 1.35vw, 19px); font-weight: 300; line-height: 1.65;
-      color: rgba(255,255,255,0.7); margin: 0 0 20px; max-width: 34em; }
-    #intro p b { font-weight: 400; color: rgba(255,255,255,0.92); }
-    #intro .key { display: flex; gap: 22px; flex-wrap: wrap; margin: 30px 0 42px; }
-    #intro .key span { display: flex; align-items: center; gap: 9px; font-size: 12px;
-      letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
-    #intro .key i { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 14px currentColor; }
-    #intro .go { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
-      color: rgba(255,255,255,0.35); }
-    #intro .bar { height: 1px; background: rgba(255,255,255,0.12); margin-top: 14px; overflow: hidden; }
-    #intro .bar i { display: block; height: 100%; width: 0; background: rgba(255,255,255,0.6); }
-    #intro.play .bar i { animation: fill linear forwards; animation-duration: var(--intro, 22s); }
-    @keyframes fill { to { width: 100%; } }
-    /* Satırlar sırayla, soluk ve hafif bulanıktan netliğe gelir */
-    #intro .step { opacity: 0.06; filter: blur(5px); transform: translateY(6px); }
-    #intro.play .step { animation: rise 3.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
-    #intro.play .step:nth-child(1) { animation-delay: 0.6s; }
-    #intro.play .step:nth-child(2) { animation-delay: 1.6s; }
-    #intro.play .step:nth-child(3) { animation-delay: 4.6s; }
-    #intro.play .step:nth-child(4) { animation-delay: 11.0s; }
-    #intro.play .step:nth-child(5) { animation-delay: 17.4s; }
-    #intro.play .step:nth-child(6) { animation-delay: 23.4s; }
-    #intro.play .step:nth-child(7) { animation-delay: 26.0s; }
-    @keyframes rise {
-      0%   { opacity: 0.06; filter: blur(5px); transform: translateY(6px); }
-      45%  { opacity: 0.45; filter: blur(1.5px); }
-      100% { opacity: 1; filter: blur(0); transform: none; }
-    }
-    /* Harf düzeyinde stiller (CONFIG.introStyle). Harfler JS ile .ch span'larına sarılır. */
-    #intro.letters .step { opacity: 1; filter: none; transform: none; animation: none; }
-    #intro.letters .word { display: inline-block; white-space: nowrap; }
-    #intro.letters .ch { display: inline-block; }
-    /* settle: her harf soluk, bulanık ve yerinden kaymış başlar, rastgele sırayla yerine oturur */
-    #intro.settle .ch { opacity: 0.04; filter: blur(3px); transform: translate(var(--dx, 0), var(--dy, 0)); }
-    #intro.settle.play .ch { animation: settle var(--dur, 2.6s) cubic-bezier(0.2, 0.6, 0.3, 1) forwards;
-      animation-delay: var(--d, 0s); }
-    @keyframes settle {
-      40%  { opacity: 0.5; filter: blur(1px); }
-      100% { opacity: 1; filter: blur(0); transform: none; }
-    }
-    /* type: daktilo. Harfler sırayla görünür olur; imleç tek bir öğedir ve JS ile taşınır
-       (CSS animasyon bitişine güvenmek bazı tarayıcılarda her harfte kalıntı bırakıyordu). */
-    #intro .inner { position: relative; }
-    #intro.type .ch { opacity: 0; }
-    #intro.type.play .ch { animation: appear 0.02s steps(1, end) forwards; animation-delay: var(--d, 0s); }
-    @keyframes appear { from { opacity: 1; } to { opacity: 1; } }
-    #caret { position: absolute; width: 2px; background: rgba(255,255,255,0.8); display: none;
-      pointer-events: none; }
-    #intro.type.play #caret { display: block; }
-    #intro.leave #caret { display: none; }
-    /* Çıkış: harfler haritayı süren akış alanına kapılıp dağılır, bulanıklaşır, söner.
-       Arka plan saydamlaşır; harita altta başlamış olur. */
-    #intro.leave { background: transparent; transition: none; pointer-events: none; }
-    #intro.leave .ch { opacity: 1; filter: none; transform: none; }
-    #intro.leave .ch.ghost { opacity: 0; }
-    #intro.play.leave .ch { animation: leave var(--ldur, 2.2s) cubic-bezier(0.5, 0, 0.9, 0.4) forwards;
-      animation-delay: var(--ld, 0s); }
-    @keyframes leave {
-      to { opacity: 0; filter: blur(5px); transform: translate(var(--lx, 40px), var(--ly, 0)); }
-    }
-    #intro.leave .bar, #intro.leave .go { opacity: 0; transition: opacity 0.6s; }
-    @media (prefers-reduced-motion: reduce) {
-      #intro .step, #intro .ch { opacity: 1 !important; filter: none !important; transform: none !important;
-        animation: none !important; }
-    }
-    #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-      font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    header { padding: 44px 6vw 0; }
+    .eyebrow { font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+    h1 { font-size: clamp(30px, 4.6vw, 56px); font-weight: 200; letter-spacing: 0.05em; line-height: 1.05;
+      margin: 14px 0 12px; text-wrap: balance; }
+    header p { max-width: 38em; font-size: clamp(15px, 1.3vw, 18px); font-weight: 300; line-height: 1.6;
+      color: rgba(255,255,255,0.65); margin: 0; }
+    main { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px;
+      padding: 36px 6vw 40px; align-content: start; }
+    a.card { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: 320px;
+      border-radius: 10px; overflow: hidden; text-decoration: none; color: #fff;
+      border: 1px solid rgba(255,255,255,0.1); background: #050508; transition: border-color 0.3s, transform 0.3s; }
+    a.card:hover, a.card:focus-visible { border-color: rgba(120,180,255,0.6); transform: translateY(-2px); outline: none; }
+    a.card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.65;
+      transition: opacity 0.4s, transform 0.6s; }
+    a.card:hover img { opacity: 0.8; transform: scale(1.02); }
+    a.card .txt { position: relative; padding: 26px 26px 24px;
+      background: linear-gradient(to top, rgba(0,0,0,0.92) 30%, rgba(0,0,0,0.5) 70%, transparent); }
+    a.card .kind { font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+    a.card h2 { font-size: 26px; font-weight: 300; letter-spacing: 0.03em; margin: 8px 0 8px; }
+    a.card p { margin: 0; font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.75); max-width: 34em; }
+    a.card .go { display: inline-block; margin-top: 14px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: #9cc6ff; }
+    footer { padding: 0 6vw 28px; font-size: 11px; letter-spacing: 0.06em; color: rgba(255,255,255,0.35); line-height: 1.7; }
+    footer a { color: rgba(255,255,255,0.55); }
+    .dots { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+    .dots span { display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.12em; }
+    .dots i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px currentColor; }
   </style>
 </head>
 <body>
-  <canvas id="map"></canvas>
-  <div id="loading">Veri yükleniyor</div>
+  <header>
+    <div class="eyebrow">FTC 24230 AG Robotik · Biyoçeşitlilik</div>
+    <h1>Akışkan Tür Haritası</h1>
+    <p>Türkiye'de 1950'den bugüne kaydedilmiş dört milyon canlı gözlemi. Bir kısmı ışığa, rüzgara ve sese dönüştü;
+      aynı veri bir matematik dersine de girdi. İkisinden birini seçin.</p>
+  </header>
 
-  <!-- GİRİŞ EKRANI: Metinleri buradan değiştirin. Takım adını .eyebrow satırına yazın. -->
-  <div id="intro">
-    <div class="inner">
-      <span id="caret"></span>
-      <div class="step eyebrow">FTC 24230 AG Robotik · Biyoçeşitlilik</div>
-      <h1 class="step">Akışkan Tür Haritası</h1>
-      <p class="step">Bu duvarda gördüğünüz her ışık, Türkiye'de bir canlının kaydedildiği andır.
-        Bir gözlemcinin defterine yazdığı leylek, bir botanikçinin kuruttuğu orkide,
-        bir öğrencinin telefonuyla çektiği kelebek.</p>
-      <p class="step">Her kayıt yapıldığı yerde doğar, görünmez bir rüzgarla sürüklenir, iz bırakır
-        ve söner. <b>Işığın biriktiği yerde çeşitlilik yoğundur.</b> Zaman 1950'den bugüne yıl yıl akar.</p>
-      <p class="step">Artan şey türler değil, onları görenlerdir: son yirmi yılda telefonlarımız
-        birer doğa defterine dönüştü ve kayıtlar katlandı. Bu harita biyoçeşitliliğin olduğu
-        kadar, bakmayı öğrenen bir toplumun da haritasıdır.</p>
-      <div class="step key">
-        <span><i style="color:#5ca8ff;background:#5ca8ff"></i>Kuşlar</span>
-        <span><i style="color:#60e08c;background:#60e08c"></i>Bitkiler</span>
-        <span><i style="color:#ffba48;background:#ffba48"></i>Böcekler</span>
-        <span><i style="color:#ff6860;background:#ff6860"></i>Memeliler</span>
-        <span><i style="color:#bc80ff;background:#bc80ff"></i>Diğer</span>
+  <main>
+    <a class="card" href="sergi/index.html">
+      <img src="docs/onizleme-2026.png" alt="Sergi önizlemesi: Türkiye haritası üzerinde akan renkli ışık izleri">
+      <div class="txt">
+        <div class="kind">Sergi</div>
+        <h2>Akışkan Tür Haritası</h2>
+        <p>Her gözlem bir parçacık. Doğar, görünmez bir rüzgara kapılır, iz bırakır ve söner. Renk canlının ailesi,
+          parlaklık yoğunluk. Zaman yıl yıl akar; ses de veriden üretilir. Karanlık bir duvara yansıtmak için.</p>
+        <span class="go">Sergiyi aç →</span>
       </div>
-      <div class="step">
-        <div class="go">Başlamak için dokunun ya da bekleyin</div>
-        <div class="bar"><i></i></div>
+    </a>
+
+    <a class="card" href="matematik/ruzgar-atolyesi/index.html">
+      <img src="docs/onizleme-atolye.png" alt="Rüzgar Atölyesi önizlemesi: ızgaralı Türkiye haritası ve girdap deseni">
+      <div class="txt">
+        <div class="kind">Matematik atölyesi · 7. sınıf</div>
+        <h2>Rüzgar Atölyesi</h2>
+        <p>Harita bir ızgaraya bölünür; her hücreye bir açı verirsin, gerçek gözlemler o rüzgara kapılır.
+          Açıölçer, cos ve sin, hazır desenler, beş görev ve adım adım öğretici.</p>
+        <span class="go">Atölyeyi aç →</span>
       </div>
+    </a>
+  </main>
+
+  <footer>
+    Veri: GBIF.org (2 September 2026) GBIF Occurrence Download <a href="https://doi.org/10.15468/dl.jq9mj7">https://doi.org/10.15468/dl.jq9mj7</a>
+    · Kaynak kodu: <a href="https://github.com/hakanatas/refik-anadol">github.com/hakanatas/refik-anadol</a>
+    <div class="dots">
+      <span><i style="color:#5ca8ff;background:#5ca8ff"></i>Kuşlar</span>
+      <span><i style="color:#60e08c;background:#60e08c"></i>Bitkiler</span>
+      <span><i style="color:#ffba48;background:#ffba48"></i>Böcekler</span>
+      <span><i style="color:#ff6860;background:#ff6860"></i>Memeliler</span>
+      <span><i style="color:#bc80ff;background:#bc80ff"></i>Diğer</span>
     </div>
-  </div>
-  <div id="overlay">
-    <div id="title">FTC 24230 AG Robotik · Biyoçeşitlilik<b>Akışkan Tür Haritası</b></div>
-    <div id="source"></div>
-    <div id="mute"></div>
-    <div id="count"></div>
-    <div id="year"></div>
-    <div id="legend"></div>
-    <div id="hint">boşluk: durdur · ← →: yıl · ↑ ↓: hız · 1-5: sınıf · F: tam ekran · H: yazıları gizle · R: baştan · I: giriş · M: ses · S: kaydet</div>
-    <div id="paused">durduruldu</div>
-    <div id="fps"></div>
-  </div>
-
-  <!-- p5.js yerel kopya: sergi salonunda internet olmasa da çalışır. -->
-  <script src="lib/p5.min.js"></script>
-  <script>if (typeof p5 === "undefined") document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"><\/script>');</script>
-  <!-- Veri dosyaları JS olarak yüklenir; böylece index.html çift tıklamayla, sunucusuz çalışır. -->
-  <script src="data/turkey_outline.js"></script>
-  <script src="data/observations.js"></script>
-  <script src="sound.js"></script>
-  <script src="sketch.js"></script>
+  </footer>
 </body>
 </html>

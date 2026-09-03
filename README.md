@@ -34,7 +34,7 @@ Yazıların geliş biçimi `CONFIG.introStyle` ile seçilir:
 Harf stillerinde çıkış harf harftir: yazı bitince harfler, haritayı süren akış alanının
 yönünde sürüklenip bulanıklaşarak söner; harita altta o sırada başlar.
 
-Metni değiştirmek için `index.html` içindeki `<div id="intro">` bölümünü düzenleyin;
+Metni değiştirmek için `sergi/index.html` içindeki `<div id="intro">` bölümünü düzenleyin;
 takım adınızı en üstteki küçük satıra yazın. Süre `CONFIG.introSeconds` ile
 ayarlanır (0 kapatır), `introEachLoop: 0` girişi yalnızca açılışta gösterir.
 
@@ -59,7 +59,10 @@ hoparlörlerde kaybolabilir.
 
 ## Hızlı başlangıç
 
-Sunucuya gerek yok. `index.html` dosyasına çift tıklayın, tarayıcıda açılır.
+Sunucuya gerek yok. Kök dizindeki `index.html` giriş sayfasıdır (sergi ve atölye seçimi);
+sergi doğrudan `sergi/index.html`, atölye `matematik/ruzgar-atolyesi/index.html`. Çift tıklayın, tarayıcıda açılır.
+
+İnternette: **https://hakanatas.github.io/refik-anadol/** (GitHub Pages; ayarı için aşağıya bakın).
 Depodaki veri gerçek: GBIF'ten 4.037.792 Türkiye kaydından örneklenmiş 80.000 gözlem, 1950-2026.
 
 Sergi günü için: tarayıcıda **F** ile tam ekran yapın, **H** ile yazıları gizleyin.
@@ -95,7 +98,7 @@ python3 scripts/fetch_gbif_api.py --total 60000
 
 Betik her yılın gerçek kayıt sayısını öğrenir, toplam kotayı yıllara orantılı
 dağıtır ve veriyi çeker. Birkaç dakika sürer, internet gerekir, ek kütüphane gerekmez.
-Bittiğinde `index.html`'i yenileyin.
+Bittiğinde sergi sayfasını yenileyin.
 
 ### Tam indirme (daha fazla kayıt isterseniz)
 
@@ -171,12 +174,20 @@ Sayfa ilk açılışta sekiz adımlı bir öğretici gösterir (ışık deliğiy
 
 ![Rüzgar Atölyesi](docs/onizleme-atolye.png)
 
+## İnternette yayınlama (GitHub Pages)
+
+Depo sahibi bir kez ayarlar: GitHub'da **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
+Branch: `claude/refik-anadol-info-sd5kug`, klasör `/ (root)`, **Save**. Birkaç dakika sonra
+https://hakanatas.github.io/refik-anadol/ giriş sayfasını açar; sergi `/sergi/`, atölye `/matematik/ruzgar-atolyesi/`.
+Sayfa yalnızca statik dosyalardan oluşur, ek yapılandırma gerekmez (`.nojekyll` dosyası Jekyll'i kapatır).
+
 ## Dosyalar
 
 ```
-index.html               sayfa iskeleti, yazı katmanı, stiller
-sketch.js                p5.js algoritması: parçacıklar, akış alanı, zaman, klavye
-sound.js                 veriden üretilen ses: doğum notaları, uğultu, yıl tıkı
+index.html               giriş sayfası: sergi / atölye seçimi (GitHub Pages ana sayfası)
+sergi/index.html         sergi sayfası iskeleti, giriş ekranı, yazı katmanı
+sergi/sketch.js          p5.js algoritması: parçacıklar, akış alanı, zaman, klavye
+sergi/sound.js           veriden üretilen ses: doğum notaları, uğultu, yıl tıkı
 lib/p5.min.js            p5.js 1.9.4 yerel kopyası (çevrimdışı çalışma için)
 data/observations.*      gözlem verisi (json ve js kopyası)
 data/turkey_outline.*    kaba Türkiye kıyı ve sınır çizgisi
