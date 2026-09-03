@@ -13,6 +13,18 @@ Zaman 1950'den bugüne yıl yıl akar.
 |------|------|
 | ![1971](docs/onizleme-1971.png) | ![2024](docs/onizleme-2024.png) |
 
+## Giriş ekranı
+
+Sergi açılışta ve her döngü başında izleyiciye işi anlatan bir giriş gösterir.
+Metin satır satır belirir, alttaki çizgi dolunca harita başlar. Dokunuş veya
+herhangi bir tuş erken başlatır. **I** tuşu girişi yeniden gösterir.
+
+![Giriş](docs/onizleme-giris.png)
+
+Metni değiştirmek için `index.html` içindeki `<div id="intro">` bölümünü düzenleyin;
+takım adınızı en üstteki küçük satıra yazın. Süre `CONFIG.introSeconds` ile
+ayarlanır (0 kapatır), `introEachLoop: 0` girişi yalnızca açılışta gösterir.
+
 ## Hızlı başlangıç
 
 Sunucuya gerek yok. `index.html` dosyasına çift tıklayın, tarayıcıda açılır.
@@ -33,6 +45,7 @@ Sayfa internet gerektirmez; p5.js `lib/` klasöründe yerel olarak durur.
 | H | Yazıları gizle / göster |
 | L | Kıyı çizgisini aç / kapat |
 | R | Baştan başla |
+| I | Giriş ekranını göster |
 | S | PNG olarak kaydet |
 | D | FPS ve parçacık sayısını göster |
 

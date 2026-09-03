@@ -33,6 +33,8 @@ const CONFIG = {
   recentWindow: 6,       // yıl; doğumların çoğu bu son pencereden seçilir
   recentBias: 0.7,       // pencereden seçilme olasılığı
   holdSeconds: 8,        // son yılda bekleme, sonra baştan
+  introSeconds: 24,      // giriş ekranı süresi; tuş veya dokunuş erken başlatır (0 kapalı)
+  introEachLoop: 1,      // 1: her döngü başında giriş yeniden gösterilir, 0: yalnızca açılışta
   outlineBrightness: 0.11, // kıyı çizgisi parlaklığı, ayrı alt katmanda (0 kapalı)
   mouseRadius: 140,      // fare/hareket etkileşimi yarıçapı (0 kapalı)
   mouseForce: 0.9,
@@ -90,6 +92,8 @@ let currentYear;
 let playing = true;
 let holdTimer = 0;
 let resetting = 0;   // >0 iken güçlü solma ve yeniden başlama geçişi
+let introActive = false;
+let introTimer = null;
 
 // ---- Projeksiyon ------------------------------------------------------------
 const proj = { lonMin: 25.6, lonMax: 45.2, latMin: 35.6, latMax: 42.4, k: Math.cos(39 * Math.PI / 180) };
@@ -128,6 +132,43 @@ function setup() {
   document.getElementById('loading').remove();
   clear();
   setTimeout(() => document.getElementById('hint').classList.add('hidden'), 9000);
+
+  const intro = document.getElementById('intro');
+  if (CONFIG.introSeconds > 0) {
+    intro.addEventListener('click', hideIntro);
+    showIntro();
+  } else {
+    intro.remove();
+  }
+}
+
+// Giriş ekranı: harita arkada karanlıkta bekler, metin satır satır belirir.
+function showIntro() {
+  const el = document.getElementById('intro');
+  if (!el) return;
+  introActive = true;
+  playing = true;
+  ui.paused.classList.remove('show');
+  ui.overlay.classList.add('hidden');
+  el.style.setProperty('--intro', CONFIG.introSeconds + 's');
+  el.classList.remove('play');
+  el.classList.remove('hidden');
+  void el.offsetWidth;          // animasyonları sıfırlamak için yeniden akış
+  el.classList.add('play');
+  clearTimeout(introTimer);
+  introTimer = setTimeout(hideIntro, CONFIG.introSeconds * 1000);
+}
+
+function hideIntro() {
+  const el = document.getElementById('intro');
+  if (!el || !introActive) return;
+  clearTimeout(introTimer);
+  el.classList.add('hidden');
+  introActive = false;
+  currentYear = yearMin;
+  holdTimer = 0;
+  clear();
+  if (overlayVisible) ui.overlay.classList.remove('hidden');
 }
 
 function loadData() {
@@ -246,7 +287,7 @@ function draw() {
   ctx.globalCompositeOperation = 'source-over';
 
   // 3) Doğumlar: canlı sayısı, o ana kadarki gözlem sayısıyla orantılı
-  if (resetting === 0) {
+  if (resetting === 0 && !introActive) {
     const cum = idxAtYear(Math.floor(currentYear) + 1);
     const target = Math.min(CONFIG.particles, Math.ceil(cum * CONFIG.particlesPerObs));
     let births = 0;
@@ -311,10 +352,13 @@ function advanceTime() {
   const dts = deltaTime / 1000;
   if (resetting > 0) {
     resetting -= dts;
-    if (resetting <= 0) { resetting = 0; currentYear = yearMin; clear(); }
+    if (resetting <= 0) {
+      resetting = 0; currentYear = yearMin; clear();
+      if (CONFIG.introSeconds > 0 && CONFIG.introEachLoop) showIntro();
+    }
     return;
   }
-  if (!playing) return;
+  if (introActive || !playing) return;
   if (currentYear >= yearMax + 1) {
     holdTimer += dts;
     if (holdTimer >= CONFIG.holdSeconds) { holdTimer = 0; resetting = 1.6; }
@@ -406,6 +450,12 @@ function toggleClass(k) {
 
 function keyPressed() {
   if (!DATA) return;
+  if (introActive) {
+    if (key.toLowerCase() === 'f') fullscreen(!fullscreen());
+    else hideIntro();
+    return false;
+  }
+  if (key.toLowerCase() === 'i' && CONFIG.introSeconds > 0) { resetting = 0; showIntro(); return; }
   if (key === ' ') { playing = !playing; ui.paused.classList.toggle('show', !playing); return false; }
   if (keyCode === RIGHT_ARROW) currentYear = Math.min(yearMax + 1, Math.floor(currentYear) + 1);
   if (keyCode === LEFT_ARROW) currentYear = Math.max(yearMin, Math.floor(currentYear) - 1);
