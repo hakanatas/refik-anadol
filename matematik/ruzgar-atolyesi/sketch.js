@@ -13,10 +13,11 @@ const CONFIG = {
   cols: 12, rows: 7,        // ızgara
   particles: 9000,
   force: 0.45,              // rüzgar gücü (panelden ayarlanır)
-  homePull: 0.0012,         // doğduğu yere zayıf dönüş; harita dağılmasın
+  homePull: 0.0045,         // doğduğu yere dönüş; rüzgar şekli büker ama Türkiye silueti kalır
+  coastFade: 10,            // karanın dışına çıkan parçacığın kare başına ek ömür kaybı (kıyıda yumuşak sönme)
   drag: 0.96, maxSpeed: 2.2,
-  lifeMin: 80, lifeMax: 220,
-  fade: 0.06, alpha: 0.22, size: 1.6,
+  lifeMin: 70, lifeMax: 170,
+  fade: 0.06, alpha: 0.18, size: 1.6,
   classBalance: 0.7,
   seed: 1,
 };
@@ -39,6 +40,7 @@ let selected = -1, dragging = false, dragMoved = false;
 // projeksiyon
 const proj = { lonMin: 25.6, lonMax: 45.2, latMin: 35.6, latMax: 42.4, k: Math.cos(39 * Math.PI / 180) };
 let ctx, ui = {}, panelVisible = true;
+let mask = null, maskW = 0, maskH = 0;   // kara maskesi (yarım çözünürlük): parçacık denizde mi?
 const enabled = [true, true, true, true, true];
 const fmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -80,6 +82,29 @@ function layout() {
   grid.cw = grid.w / CONFIG.cols; grid.ch = grid.h / CONFIG.rows;
   for (let i = 0; i < N; i++) { oX[i] = toX(oLon[i]); oY[i] = toY(oLat[i]); }
   drawMapLayer();
+  buildMask();
+}
+
+// Türkiye dış hattını yarım çözünürlüklü bir tuvale boyayıp piksel maskesi çıkarır.
+// Parçacık başına çokgen testi yerine tek bir dizi bakışı: hızlı.
+function buildMask() {
+  const O = window.TURKEY_OUTLINE; if (!O) return;
+  maskW = Math.ceil(width / 2); maskH = Math.ceil(height / 2);
+  const c = document.createElement('canvas'); c.width = maskW; c.height = maskH;
+  const g = c.getContext('2d');
+  g.scale(0.5, 0.5);
+  const ring = (r) => { g.beginPath(); r.forEach(([lon, lat], i) => i ? g.lineTo(toX(lon), toY(lat)) : g.moveTo(toX(lon), toY(lat))); g.closePath(); };
+  g.fillStyle = '#fff'; ring(O.outer); g.fill();
+  g.globalCompositeOperation = 'destination-out'; ring(O.marmara); g.fill();
+  const d = g.getImageData(0, 0, maskW, maskH).data;
+  mask = new Uint8Array(maskW * maskH);
+  for (let i = 0; i < mask.length; i++) mask[i] = d[i * 4 + 3] > 0 ? 1 : 0;
+}
+function onLand(x, y) {
+  if (!mask) return true;
+  const mx = x >> 1, my = y >> 1;
+  if (mx < 0 || my < 0 || mx >= maskW || my >= maskH) return false;
+  return mask[my * maskW + mx] === 1;
 }
 const toX = lon => proj.ox + (lon - proj.lonMin) * proj.k * proj.s;
 const toY = lat => proj.oy + (proj.latMax - lat) * proj.s;
@@ -95,8 +120,8 @@ function drawMapLayer() {
     g.beginPath();
     ring.forEach(([lon, lat], i) => i ? g.lineTo(toX(lon), toY(lat)) : g.moveTo(toX(lon), toY(lat)));
     g.closePath();
-    g.fillStyle = land ? 'rgba(255,255,255,0.025)' : '#000'; g.fill();
-    g.strokeStyle = 'rgba(255,255,255,0.14)'; g.stroke();
+    g.fillStyle = land ? 'rgba(255,255,255,0.045)' : '#000'; g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.30)'; g.stroke();
   }
 }
 
@@ -165,6 +190,8 @@ function draw() {
     if (sp > CONFIG.maxSpeed) { vx *= CONFIG.maxSpeed / sp; vy *= CONFIG.maxSpeed / sp; }
     if (sp < 0.25 && plife[i] > 4) plife[i] -= 3;   // sınırda sıkışan parçacık hızla söner, yığılma azalır
     x += vx * dt; y += vy * dt;
+    // denize çıkan parçacık kıyıda yumuşakça söner: silüet korunur, kenar hafif parlar
+    if (!onLand(x, y)) plife[i] = plife[i] > CONFIG.coastFade ? plife[i] - CONFIG.coastFade : 1;
     // ızgaradan çok uzağa kaçanı öldür
     if (x < grid.x - 60 || x > grid.x + grid.w + 60 || y < grid.y - 60 || y > grid.y + grid.h + 60) { palive[i] = 0; aliveCount--; continue; }
     pvx[i] = vx; pvy[i] = vy; px[i] = x; py[i] = y;
