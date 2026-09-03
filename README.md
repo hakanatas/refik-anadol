@@ -25,6 +25,25 @@ Metni değiştirmek için `index.html` içindeki `<div id="intro">` bölümünü
 takım adınızı en üstteki küçük satıra yazın. Süre `CONFIG.introSeconds` ile
 ayarlanır (0 kapatır), `introEachLoop: 0` girişi yalnızca açılışta gösterir.
 
+## Ses
+
+Ses de veriden üretilir; dış ses dosyası yok, her şey tarayıcının Web Audio motorunda
+anlık sentezlenir (`sound.js`):
+
+- **Doğum notaları:** parçacık doğduğunda sınıfına göre bir tını çalar. Kuşlar kısa, yukarı
+  kayan cıvıltı; bitkiler yumuşak uzun pad; böcekler çok kısa tık; memeliler alçak vuruş;
+  diğerleri çan. Perde enleme göre pentatonik dizide seçilir (kuzey tiz, güney pes),
+  sağ-sol konumu boylama göre.
+- **Alt uğultu:** canlı parçacık yoğunluğu arttıkça açılır ve parlar. 1950'lerde neredeyse
+  sessiz, 2020'lerde dolu.
+- **Yıl tıkı:** yıl değişince belli belirsiz bir tık.
+
+Tarayıcılar sesi ancak bir dokunuş veya tuştan sonra açar. Sergide sayfayı açtıktan sonra
+bir kez ekrana dokunun veya bir tuşa basın; giriş ekranındaki dokunuş bunu zaten yapar.
+**M** sesi kapatır ve açar. `CONFIG.sound = 0` tamamen kapatır, `CONFIG.volume` düzeyi ayarlar.
+Sergi salonunda hoparlörü orta düzeyde tutun; uğultu alçak frekanslı olduğu için küçük
+hoparlörlerde kaybolabilir.
+
 ## Hızlı başlangıç
 
 Sunucuya gerek yok. `index.html` dosyasına çift tıklayın, tarayıcıda açılır.
@@ -46,6 +65,7 @@ Sayfa internet gerektirmez; p5.js `lib/` klasöründe yerel olarak durur.
 | L | Kıyı çizgisini aç / kapat |
 | R | Baştan başla |
 | I | Giriş ekranını göster |
+| M | Sesi kapat / aç |
 | S | PNG olarak kaydet |
 | D | FPS ve parçacık sayısını göster |
 
@@ -131,6 +151,7 @@ Sık ayarlanacaklar:
 ```
 index.html               sayfa iskeleti, yazı katmanı, stiller
 sketch.js                p5.js algoritması: parçacıklar, akış alanı, zaman, klavye
+sound.js                 veriden üretilen ses: doğum notaları, uğultu, yıl tıkı
 lib/p5.min.js            p5.js 1.9.4 yerel kopyası (çevrimdışı çalışma için)
 data/observations.*      gözlem verisi (json ve js kopyası)
 data/turkey_outline.*    kaba Türkiye kıyı ve sınır çizgisi
@@ -158,7 +179,8 @@ Jüri karşısında bu ayrımı yapabilmek, işin bilimsel değerini gösterir.
 ## Yol haritası
 
 - [x] Gerçek GBIF verisi
-- [ ] Ses katmanı: o yılın kuş sesleri (Xeno-canto)
+- [x] Ses katmanı: veriden sentezlenen notalar ve uğultu
+- [ ] Gerçek kuş sesleri (Xeno-canto) ile karışım
 - [ ] Web kamera ile izleyici hareketine tepki
 - [ ] FTC robotunun sensör verisinden canlı katman
 - [ ] WebGL sürümü: 100 bin+ parçacık

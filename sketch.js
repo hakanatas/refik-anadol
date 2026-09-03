@@ -39,6 +39,8 @@ const CONFIG = {
   outlineBrightness: 0.11, // kıyı çizgisi parlaklığı, ayrı alt katmanda (0 kapalı)
   mouseRadius: 140,      // fare/hareket etkileşimi yarıçapı (0 kapalı)
   mouseForce: 0.9,
+  sound: 1,              // 1: veriden üretilen ses açık (sound.js), 0 kapalı
+  volume: 0.6,           // ana ses düzeyi 0..1
 };
 
 const PALETTE = [
@@ -97,6 +99,7 @@ let holdTimer = 0;
 let resetting = 0;   // >0 iken güçlü solma ve yeniden başlama geçişi
 let introActive = false;
 let introTimer = null;
+let lastSpawn = -1;   // son doğan parçacığın gözlem indeksi (ses için)
 
 // ---- Projeksiyon ------------------------------------------------------------
 const proj = { lonMin: 25.6, lonMax: 45.2, latMin: 35.6, latMax: 42.4, k: Math.cos(39 * Math.PI / 180) };
@@ -138,11 +141,12 @@ function setup() {
 
   const intro = document.getElementById('intro');
   if (CONFIG.introSeconds > 0) {
-    intro.addEventListener('click', hideIntro);
+    intro.addEventListener('click', () => { armSound(); hideIntro(); });
     showIntro();
   } else {
     intro.remove();
   }
+  updateMuteUi();
 }
 
 // Giriş ekranı: harita arkada karanlıkta bekler, metin satır satır belirir.
@@ -160,6 +164,19 @@ function showIntro() {
   el.classList.add('play');
   clearTimeout(introTimer);
   introTimer = setTimeout(hideIntro, CONFIG.introSeconds * 1000);
+}
+
+// Tarayıcı sesi yalnızca kullanıcı hareketinden sonra açar.
+function armSound() {
+  if (!CONFIG.sound) return;
+  if (Sound.init(CONFIG.volume)) updateMuteUi();
+}
+
+function updateMuteUi() {
+  const el = document.getElementById('mute');
+  if (!el) return;
+  if (!CONFIG.sound) { el.textContent = ''; return; }
+  el.textContent = !Sound.ready ? 'ses için dokunun' : (Sound.muted ? 'ses kapalı · M' : 'ses açık · M');
 }
 
 function hideIntro() {
@@ -302,6 +319,7 @@ function spawn(i) {
   if (b - a <= 0) { a = 0; }
   if (b - a <= 0) return false;
   const j = clsIdx[c][a + Math.floor(rng() * (b - a))];
+  lastSpawn = j;
   const jit = 4;   // aynı koordinatta yığılan kayıtları (popüler gözlem noktaları) hafifçe dağıt
   px[i] = oX[j] + (rng() - 0.5) * jit; py[i] = oY[j] + (rng() - 0.5) * jit;
   phx[i] = px[i]; phy[i] = py[i];
@@ -335,8 +353,18 @@ function draw() {
       Math.ceil(CONFIG.particles * Math.pow(cum / N, CONFIG.growthExponent)));
     let births = 0;
     for (let i = 0; i < CONFIG.particles && aliveCount < target && births < CONFIG.birthsPerFrame; i++) {
-      if (!palive[i] && spawn(i)) { aliveCount++; births++; }
+      if (!palive[i] && spawn(i)) {
+        aliveCount++; births++;
+        if (CONFIG.sound && Sound.ready) {
+          const j = lastSpawn;
+          Sound.birth(oCls[j], (oLon[j] - proj.lonMin) / (proj.lonMax - proj.lonMin),
+                      (oLat[j] - proj.latMin) / (proj.latMax - proj.latMin));
+        }
+      }
     }
+  }
+  if (CONFIG.sound && Sound.ready && frameCount % 20 === 0) {
+    Sound.setDensity(aliveCount / CONFIG.particles);
   }
 
   // 4) Hareket + çizim (sınıf başına tek Path2D, tek fill: hızlı)
@@ -478,7 +506,10 @@ const fmt = new Intl.NumberFormat('tr-TR');
 
 function updateUi() {
   const y = Math.min(yearMax, Math.floor(currentYear));
-  if (y !== ui.lastYear) { ui.year.textContent = y; ui.lastYear = y; }
+  if (y !== ui.lastYear) {
+    ui.year.textContent = y; ui.lastYear = y;
+    if (CONFIG.sound && Sound.ready && !introActive) Sound.yearTick();
+  }
   const cum = idxAtYear(y + 1);
   if (cum !== ui.lastCount) {
     ui.count.textContent = fmt.format(cum) + ' gözlem';
@@ -500,11 +531,13 @@ function toggleClass(k) {
 
 function keyPressed() {
   if (!DATA) return;
+  armSound();
   if (introActive) {
     if (key.toLowerCase() === 'f') fullscreen(!fullscreen());
     else hideIntro();
     return false;
   }
+  if (key.toLowerCase() === 'm' && CONFIG.sound) { Sound.init(CONFIG.volume); Sound.toggleMute(); updateMuteUi(); return; }
   if (key.toLowerCase() === 'i' && CONFIG.introSeconds > 0) { resetting = 0; showIntro(); return; }
   if (key === ' ') { playing = !playing; ui.paused.classList.toggle('show', !playing); return false; }
   if (keyCode === RIGHT_ARROW) currentYear = Math.min(yearMax + 1, Math.floor(currentYear) + 1);
@@ -522,6 +555,8 @@ function keyPressed() {
 }
 
 function mouseMoved() { mouseLastMove = millis(); }
+function mousePressed() { armSound(); }
+function touchStarted() { armSound(); }
 function touchMoved() { mouseLastMove = millis(); return false; }
 
 function windowResized() {

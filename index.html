@@ -37,6 +37,8 @@
       font-variant-numeric: tabular-nums; min-width: 4.5em; text-align: right; }
     #source { position: absolute; right: 32px; top: 30px; font-size: 11px; letter-spacing: 0.12em;
       color: rgba(255,255,255,0.3); text-align: right; max-width: 40vw; }
+    #mute { position: absolute; right: 32px; top: 52px; font-size: 11px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: rgba(255,255,255,0.3); }
     #hint { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
       font-size: 11px; letter-spacing: 0.12em; color: rgba(255,255,255,0.35);
       white-space: nowrap; transition: opacity 1s; }
@@ -96,7 +98,7 @@
   <!-- GİRİŞ EKRANI: Metinleri buradan değiştirin. Takım adını .eyebrow satırına yazın. -->
   <div id="intro">
     <div class="inner">
-      <div class="step eyebrow">First Tech Challenge · Biyoçeşitlilik</div>
+      <div class="step eyebrow">FTC 24230 AG Robotik · Biyoçeşitlilik</div>
       <h1 class="step">Akışkan Tür Haritası</h1>
       <p class="step">Bu duvarda gördüğünüz her ışık, Türkiye'de bir canlının kaydedildiği andır.
         Bir gözlemcinin defterine yazdığı leylek, bir botanikçinin kuruttuğu orkide,
@@ -120,12 +122,13 @@
     </div>
   </div>
   <div id="overlay">
-    <div id="title">Biyoçeşitlilik<b>Akışkan Tür Haritası</b></div>
+    <div id="title">FTC 24230 AG Robotik · Biyoçeşitlilik<b>Akışkan Tür Haritası</b></div>
     <div id="source"></div>
+    <div id="mute"></div>
     <div id="count"></div>
     <div id="year"></div>
     <div id="legend"></div>
-    <div id="hint">boşluk: durdur · ← →: yıl · ↑ ↓: hız · 1-5: sınıf · F: tam ekran · H: yazıları gizle · R: baştan · I: giriş · S: kaydet</div>
+    <div id="hint">boşluk: durdur · ← →: yıl · ↑ ↓: hız · 1-5: sınıf · F: tam ekran · H: yazıları gizle · R: baştan · I: giriş · M: ses · S: kaydet</div>
     <div id="paused">durduruldu</div>
     <div id="fps"></div>
   </div>
@@ -136,6 +139,7 @@
   <!-- Veri dosyaları JS olarak yüklenir; böylece index.html çift tıklamayla, sunucusuz çalışır. -->
   <script src="data/turkey_outline.js"></script>
   <script src="data/observations.js"></script>
+  <script src="sound.js"></script>
   <script src="sketch.js"></script>
 </body>
 </html>
