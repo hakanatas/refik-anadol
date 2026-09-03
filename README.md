@@ -159,6 +159,16 @@ Sık ayarlanacaklar:
 - `noiseScale`, `flowForce`, `homePull`: akışın karakteri. `homePull` sıfıra yaklaşınca harita dağılır.
 - `seed`: aynı tohum aynı akışı üretir; beğendiğiniz görüntüyü yeniden bulabilirsiniz.
 
+## Matematik dersi için: Rüzgar Atölyesi
+
+`matematik/ruzgar-atolyesi/index.html` ortaokul (7. sınıf, açılar ve koordinat sistemi)
+için aynı veriyle çalışan etkileşimli bir atölye. Harita 12×7 bir ızgaraya bölünür; öğrenci
+her hücreye bir açı verir, gerçek gözlem parçacıkları o rüzgara kapılır. Açıölçer, cos/sin
+değerleri, hazır desenler (girdap, içe, dışa, rastgele, pürüzsüz) ve beş görev panelde.
+Çalışma kağıdı ve cevap anahtarı: `matematik/ruzgar-atolyesi/CALISMA-KAGIDI.md`.
+
+![Rüzgar Atölyesi](docs/onizleme-atolye.png)
+
 ## Dosyalar
 
 ```
@@ -173,6 +183,7 @@ scripts/fetch_gbif_api.py       GBIF açık API'den orantılı örnek çeker
 scripts/prepare_gbif.py         GBIF CSV indirmesi -> sergi formatı
 scripts/common.py               ortak sınıf eşlemesi ve çıktı yazımı
 KONSEPT.md               sergi metni ve algoritmik yaklaşım
+matematik/ruzgar-atolyesi/   ortaokul matematik atölyesi (index.html, sketch.js, çalışma kağıdı)
 docs/                    önizleme görüntüleri
 ```
 

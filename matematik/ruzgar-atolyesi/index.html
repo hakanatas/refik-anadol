@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>Rüzgar Atölyesi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html, body { margin: 0; padding: 0; background: #000; color: #fff; overflow: hidden;
+      font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    canvas { display: block; }
+    main, .p5Canvas { position: relative; z-index: 1; }
+    #map { position: fixed; inset: 0; z-index: 0; }
+
+    /* Sağ panel: öğrenci arayüzü */
+    #panel { position: fixed; top: 0; right: 0; bottom: 0; width: 320px; z-index: 2;
+      background: rgba(8,8,10,0.92); border-left: 1px solid rgba(255,255,255,0.08);
+      padding: 22px 22px 18px; box-sizing: border-box; overflow-y: auto; font-size: 13px; line-height: 1.5; }
+    #panel h1 { font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase; font-weight: 400;
+      color: rgba(255,255,255,0.5); margin: 0 0 4px; }
+    #panel h1 b { display: block; font-size: 22px; letter-spacing: 0.04em; font-weight: 300;
+      color: rgba(255,255,255,0.92); text-transform: none; margin-top: 6px; }
+    #panel h2 { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 400;
+      color: rgba(255,255,255,0.4); margin: 22px 0 8px; }
+    #panel p { margin: 0 0 8px; color: rgba(255,255,255,0.7); }
+
+    /* Seçili hücre kartı */
+    #cell { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
+      padding: 12px; }
+    #cell canvas { width: 96px; height: 96px; }
+    #angle { font-size: 34px; font-weight: 200; line-height: 1; font-variant-numeric: tabular-nums; }
+    #angle small { font-size: 14px; color: rgba(255,255,255,0.45); margin-left: 2px; }
+    #comp { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 6px; font-variant-numeric: tabular-nums; }
+    #comp span { color: rgba(255,255,255,0.85); }
+    #where { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 6px; letter-spacing: 0.06em; }
+
+    .row { display: flex; flex-wrap: wrap; gap: 6px; }
+    button { font: inherit; font-size: 12px; letter-spacing: 0.04em; color: rgba(255,255,255,0.85);
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 4px;
+      padding: 6px 10px; cursor: pointer; }
+    button:hover { background: rgba(255,255,255,0.12); }
+    button:focus-visible { outline: 2px solid rgba(120,180,255,0.8); outline-offset: 1px; }
+    button.on { background: rgba(120,180,255,0.18); border-color: rgba(120,180,255,0.5); }
+
+    label.check { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.7); cursor: pointer; }
+    input[type=range] { width: 100%; accent-color: #78b4ff; }
+
+    /* Görev kartları */
+    .task { border-left: 2px solid rgba(255,255,255,0.14); padding: 6px 0 6px 12px; margin-bottom: 10px;
+      color: rgba(255,255,255,0.7); }
+    .task b { display: block; color: rgba(255,255,255,0.9); font-weight: 500; margin-bottom: 2px; }
+    .task.done { border-left-color: #60e08c; }
+    .task.done b::after { content: '  ✓'; color: #60e08c; }
+
+    #legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 6px; }
+    #legend span { display: flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: rgba(255,255,255,0.6); }
+    #legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    #foot { margin-top: 18px; font-size: 11px; color: rgba(255,255,255,0.35); }
+    #foot a { color: rgba(255,255,255,0.5); }
+
+    #hint { position: fixed; left: 24px; bottom: 18px; z-index: 2; font-size: 11px; letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.4); }
+    #loading { position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.4); background: #000; }
+  </style>
+</head>
+<body>
+  <canvas id="map"></canvas>
+  <div id="loading">Veri yükleniyor</div>
+
+  <aside id="panel">
+    <h1>FTC 24230 AG Robotik · Matematik<b>Rüzgar Atölyesi</b></h1>
+    <p>Harita bir ızgaraya bölündü. Her hücrede bir rüzgar esiyor ve yönünü <b>açı</b> belirliyor.
+      Işık parçacıkları Türkiye'de kaydedilmiş gerçek canlı gözlemleri; rüzgarın onları nereye
+      götüreceğine sen karar veriyorsun.</p>
+
+    <h2>Seçili hücre</h2>
+    <div id="cell">
+      <canvas id="dial" width="192" height="192"></canvas>
+      <div>
+        <div id="angle">0<small>°</small></div>
+        <div id="comp">cos = <span id="cx">1,00</span> &nbsp; sin = <span id="cy">0,00</span></div>
+        <div id="where">Hücre: —</div>
+      </div>
+    </div>
+    <p style="margin-top:8px;font-size:12px;color:rgba(255,255,255,0.5)">Bir hücreye tıkla, sonra sürükleyerek
+      açıyı çevir. Sadece tıklamak 15° ekler. Ok tuşları 5° oynatır.</p>
+    <label class="check"><input type="checkbox" id="snap" checked> 5°'lik adımlara oturt</label>
+
+    <h2>Hazır desenler</h2>
+    <div class="row">
+      <button data-preset="east">Hepsi 0°</button>
+      <button data-preset="north">Hepsi 90°</button>
+      <button data-preset="cw">Girdap ↻</button>
+      <button data-preset="ccw">Girdap ↺</button>
+      <button data-preset="out">Dışa</button>
+      <button data-preset="in">İçe</button>
+      <button data-preset="random">Rastgele</button>
+      <button data-preset="smooth">Pürüzsüz</button>
+    </div>
+
+    <h2>Görünüm</h2>
+    <label class="check"><input type="checkbox" id="showArrows" checked> Okları ve açıları göster</label>
+    <label class="check"><input type="checkbox" id="showGrid" checked> Izgarayı göster</label>
+    <label class="check" style="margin-top:6px">Rüzgar gücü <input type="range" id="force" min="0" max="100" value="45"></label>
+
+    <h2>Görevler</h2>
+    <div class="task" id="t1"><b>1. Hepsini 0° yap</b>Parçacıklar hangi yöne akıyor? Matematikte 0° hangi yön?</div>
+    <div class="task" id="t2"><b>2. 90° ile 270°</b>Bir hücreyi 90°, yanındakini 270° yap. İkisinin arasında ne oluyor?</div>
+    <div class="task" id="t3"><b>3. Girdap kur</b>Hazır deseni kullanmadan, merkez etrafındaki 8 hücreyle saat yönünde dönen bir girdap yap. Her hücrenin açısını deftere yaz.</div>
+    <div class="task" id="t4"><b>4. Komşu kuralı</b>"Rastgele" ile "Pürüzsüz" arasındaki fark ne? Komşu hücrelerin açılarını karşılaştır. Sergideki harita hangisini kullanıyor?</div>
+    <div class="task" id="t5"><b>5. Adının harfi</b>Rüzgarla adının ilk harfini çizmeyi dene. Hangi açılar gerekti?</div>
+
+    <h2>Renkler</h2>
+    <div id="legend"></div>
+    <div id="foot">Veri: GBIF Occurrence Download <a href="https://doi.org/10.15468/dl.jq9mj7">doi.org/10.15468/dl.jq9mj7</a>.
+      Açı ölçümü matematik kuralıyla: 0° doğu, saat yönünün tersine artar, 90° kuzey.</div>
+  </aside>
+  <div id="hint">R: sıfırla · H: paneli gizle · S: kaydet</div>
+
+  <script src="../../lib/p5.min.js"></script>
+  <script src="../../data/turkey_outline.js"></script>
+  <script src="../../data/observations.js"></script>
+  <script src="sketch.js"></script>
+</body>
+</html>
