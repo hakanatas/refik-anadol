@@ -61,6 +61,31 @@
 
     #hint { position: fixed; left: 24px; bottom: 18px; z-index: 2; font-size: 11px; letter-spacing: 0.1em;
       color: rgba(255,255,255,0.4); }
+    #tutBtn { width: 100%; margin-top: 14px; padding: 9px 12px; font-size: 13px;
+      background: rgba(120,180,255,0.14); border-color: rgba(120,180,255,0.4); }
+
+    /* Öğretici: ışık deliği + kart */
+    #tut { position: fixed; inset: 0; z-index: 10; display: none; }
+    #tut.show { display: block; }
+    #spot { position: fixed; border-radius: 10px; pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.68), 0 0 0 2px rgba(120,180,255,0.7), 0 0 30px rgba(120,180,255,0.35);
+      transition: all 0.55s cubic-bezier(0.22, 0.61, 0.36, 1); }
+    #card { position: fixed; width: 380px; max-width: calc(100vw - 40px); background: rgba(12,12,16,0.97);
+      border: 1px solid rgba(120,180,255,0.35); border-radius: 10px; padding: 20px 22px 16px; box-sizing: border-box;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6); transition: all 0.55s cubic-bezier(0.22, 0.61, 0.36, 1); }
+    #card .step { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(120,180,255,0.9); }
+    #card h3 { margin: 6px 0 10px; font-size: 20px; font-weight: 400; color: #fff; }
+    #card p { margin: 0 0 8px; font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.8); }
+    #card p b { color: #fff; font-weight: 500; }
+    #card .nav { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; gap: 8px; }
+    #card .dots { display: flex; gap: 5px; }
+    #card .dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+    #card .dots i.on { background: rgba(120,180,255,0.95); }
+    #card button.primary { background: rgba(120,180,255,0.9); color: #061020; border-color: transparent; font-weight: 500; }
+    #card button.primary:hover { background: #9cc6ff; }
+    #card .skip { position: absolute; top: 10px; right: 12px; background: none; border: none; color: rgba(255,255,255,0.4);
+      font-size: 18px; line-height: 1; padding: 4px 6px; }
+    #card .skip:hover { color: #fff; }
     #loading { position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
       font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.4); background: #000; }
   </style>
@@ -74,6 +99,7 @@
     <p>Harita bir ızgaraya bölündü. Her hücrede bir rüzgar esiyor ve yönünü <b>açı</b> belirliyor.
       Işık parçacıkları Türkiye'de kaydedilmiş gerçek canlı gözlemleri; rüzgarın onları nereye
       götüreceğine sen karar veriyorsun.</p>
+    <button id="tutBtn">▶ Öğreticiyi başlat</button>
 
     <h2>Seçili hücre</h2>
     <div id="cell">
@@ -89,7 +115,7 @@
     <label class="check"><input type="checkbox" id="snap" checked> 5°'lik adımlara oturt</label>
 
     <h2>Hazır desenler</h2>
-    <div class="row">
+    <div class="row" id="presets">
       <button data-preset="east">Hepsi 0°</button>
       <button data-preset="north">Hepsi 90°</button>
       <button data-preset="cw">Girdap ↻</button>
@@ -103,21 +129,41 @@
     <h2>Görünüm</h2>
     <label class="check"><input type="checkbox" id="showArrows" checked> Okları ve açıları göster</label>
     <label class="check"><input type="checkbox" id="showGrid" checked> Izgarayı göster</label>
-    <label class="check" style="margin-top:6px">Rüzgar gücü <input type="range" id="force" min="0" max="100" value="45"></label>
+    <label class="check" style="margin-top:6px" id="forceRow">Rüzgar gücü <input type="range" id="force" min="0" max="100" value="45"></label>
 
     <h2>Görevler</h2>
+    <div id="tasks">
     <div class="task" id="t1"><b>1. Hepsini 0° yap</b>Parçacıklar hangi yöne akıyor? Matematikte 0° hangi yön?</div>
     <div class="task" id="t2"><b>2. 90° ile 270°</b>Bir hücreyi 90°, yanındakini 270° yap. İkisinin arasında ne oluyor?</div>
     <div class="task" id="t3"><b>3. Girdap kur</b>Hazır deseni kullanmadan, merkez etrafındaki 8 hücreyle saat yönünde dönen bir girdap yap. Her hücrenin açısını deftere yaz.</div>
     <div class="task" id="t4"><b>4. Komşu kuralı</b>"Rastgele" ile "Pürüzsüz" arasındaki fark ne? Komşu hücrelerin açılarını karşılaştır. Sergideki harita hangisini kullanıyor?</div>
     <div class="task" id="t5"><b>5. Adının harfi</b>Rüzgarla adının ilk harfini çizmeyi dene. Hangi açılar gerekti?</div>
+    </div>
 
     <h2>Renkler</h2>
     <div id="legend"></div>
     <div id="foot">Veri: GBIF Occurrence Download <a href="https://doi.org/10.15468/dl.jq9mj7">doi.org/10.15468/dl.jq9mj7</a>.
       Açı ölçümü matematik kuralıyla: 0° doğu, saat yönünün tersine artar, 90° kuzey.</div>
   </aside>
-  <div id="hint">R: sıfırla · H: paneli gizle · S: kaydet</div>
+  <div id="hint">R: sıfırla · H: paneli gizle · S: kaydet · ?: öğretici</div>
+
+  <!-- Öğretici -->
+  <div id="tut">
+    <div id="spot"></div>
+    <div id="card">
+      <button class="skip" id="tutClose" title="Kapat">×</button>
+      <div class="step" id="tutStep"></div>
+      <h3 id="tutTitle"></h3>
+      <div id="tutBody"></div>
+      <div class="nav">
+        <div class="dots" id="tutDots"></div>
+        <div>
+          <button id="tutPrev">Geri</button>
+          <button id="tutNext" class="primary">İleri</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="../../lib/p5.min.js"></script>
   <script src="../../data/turkey_outline.js"></script>

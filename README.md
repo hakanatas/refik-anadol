@@ -166,6 +166,8 @@ için aynı veriyle çalışan etkileşimli bir atölye. Harita 12×7 bir ızgar
 her hücreye bir açı verir, gerçek gözlem parçacıkları o rüzgara kapılır. Açıölçer, cos/sin
 değerleri, hazır desenler (girdap, içe, dışa, rastgele, pürüzsüz) ve beş görev panelde.
 Çalışma kağıdı ve cevap anahtarı: `matematik/ruzgar-atolyesi/CALISMA-KAGIDI.md`.
+Sayfa ilk açılışta sekiz adımlı bir öğretici gösterir (ışık deliğiyle vurgu, canlı gösterimler);
+"Öğreticiyi başlat" düğmesi veya **?** tuşu yeniden açar.
 
 ![Rüzgar Atölyesi](docs/onizleme-atolye.png)
 

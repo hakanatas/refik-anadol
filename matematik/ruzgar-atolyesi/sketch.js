@@ -67,6 +67,10 @@ function setup() {
   selectCell(Math.floor(CONFIG.rows / 2) * CONFIG.cols + Math.floor(CONFIG.cols / 2));
   document.getElementById('loading').remove();
   clear();
+  setupTutorial();
+  let seen = false;
+  try { seen = localStorage.getItem('ruzgar-tut') === '1'; } catch (e) {}
+  if (!seen) startTutorial();
 }
 
 // Harita, panelin solundaki alana sığdırılır; ızgara haritanın kutusunu kaplar.
@@ -259,7 +263,7 @@ function drawGrid() {
 function overPanel(x) { return panelVisible && x >= width - 320; }
 
 function mousePressed() {
-  if (overPanel(mouseX)) return;
+  if (tut.active || overPanel(mouseX)) return;
   const c = cellAt(mouseX, mouseY);
   if (c < 0) return;
   selectCell(c); dragging = true; dragMoved = false;
@@ -293,6 +297,11 @@ function keyPressed() {
   if (k === 'h') { panelVisible = !panelVisible; document.getElementById('panel').style.display = panelVisible ? '' : 'none'; layout(); }
   if (k === 's') savePng();
   if (k === 'f') fullscreen(!fullscreen());
+  if (key === '?') startTutorial();
+  if (tut.active) {
+    if (keyCode === ESCAPE) endTutorial();
+    if (keyCode === ENTER) tutGo(tut.i + 1);
+  }
 }
 
 function selectCell(i) { selected = i; updateCellUi(); }
@@ -387,3 +396,155 @@ function checkTasks(manual) {
 }
 
 function windowResized() { resizeCanvas(windowWidth, windowHeight); layout(); clear(); }
+
+
+// =============================================================================
+// Öğretici: adım adım, ışık deliğiyle vurgu, canlı gösterimler
+
+const tut = { active: false, i: 0, anim: null, savedAngles: null, savedSel: -1 };
+
+const TUT_STEPS = [
+  {
+    title: 'Bu harita Türkiye',
+    body: `<p>Karanlıkta akan her ışık noktası <b>gerçek bir canlı gözlemi</b>: birinin bir kuşu, bitkiyi ya da
+      böceği gördüğü ve kaydettiği yer. Ekranda Türkiye'den <b>80.000 kayıt</b> var; 4 milyon kaydın içinden seçildi.</p>
+      <p>Renkler canlının ailesini söylüyor: mavi kuşlar, yeşil bitkiler, amber böcekler, kızıl memeliler, mor diğerleri.</p>`,
+    target: 'map', demo: () => applyPreset('smooth'),
+  },
+  {
+    title: 'Izgara ve rüzgar',
+    body: `<p>Haritayı <b>12 sütun × 7 satır</b> bir ızgaraya böldük. Her hücrede bir rüzgar esiyor.</p>
+      <p>Hücredeki <b>ok</b> rüzgarın yönünü, köşedeki <b>sayı</b> bu yönün açısını gösteriyor.
+      Işık noktaları bulundukları hücrenin rüzgarına kapılıp sürükleniyor.</p>
+      <p>Şu an bütün hücreler <b>0°</b>: her şey doğuya, yani sağa akıyor.</p>`,
+    target: 'map', demo: () => applyPreset('east'),
+  },
+  {
+    title: 'Açı nasıl ölçülür?',
+    body: `<p>Matematikte açı <b>doğudan (sağdan) başlar</b> ve <b>saat yönünün tersine</b> artar.</p>
+      <p><b>0°</b> doğu · <b>90°</b> kuzey (yukarı) · <b>180°</b> batı · <b>270°</b> güney (aşağı).</p>
+      <p>Açıölçerdeki mavi kola ve haritadaki seçili hücreye bak: açı büyürken ok nasıl dönüyor?</p>`,
+    target: '#cell', demo: () => tutSpin(),
+  },
+  {
+    title: 'Rüzgarı sen yönlendir',
+    body: `<p>Haritada bir hücreye <b>tıkla ve sürükle</b>: ok parmağını izler, açı değişir.</p>
+      <p>Sürüklemeden <b>bir kez tıklarsan</b> açıya 15° eklenir. <b>Ok tuşları</b> 5° oynatır.
+      "5°'lik adımlara oturt" açıkken sayılar yuvarlak gelir.</p>`,
+    target: 'cellSel', demo: () => tutWiggle(),
+  },
+  {
+    title: 'cos ve sin ne anlatıyor?',
+    body: `<p>Seçili hücre kutusunda iki sayı daha var. <b>cos</b> rüzgarın <b>sağa-sola</b> payı,
+      <b>sin</b> <b>yukarı-aşağı</b> payı.</p>
+      <p>0°'de cos = 1, sin = 0: rüzgar tamamen yatay. 90°'de cos = 0, sin = 1: tamamen dikey.
+      45°'de ikisi de 0,71: yarı yarıya. Lisede bunlara <b>vektör bileşenleri</b> denir.</p>`,
+    target: '#comp', demo: () => { if (selected >= 0) setAngle(selected, 45); },
+  },
+  {
+    title: 'Neden şekil bozulmuyor?',
+    body: `<p>Rüzgar ne kadar güçlü olsa da noktalar <b>doğdukları yere bağlı</b>: bir lastik gibi geri çekiliyorlar.
+      Denize çıkan nokta kıyıda sönüyor. Bu yüzden Türkiye'nin silueti hep okunur kalıyor.</p>
+      <p>Rüzgar gücünü kaydırıcıdan azaltıp artırarak dengeyi kendin bul.</p>`,
+    target: '#forceRow', demo: () => applyPreset('north'),
+  },
+  {
+    title: 'Hazır desenler',
+    body: `<p>Bu düğmeler bütün ızgarayı tek seferde ayarlar. <b>Girdap</b>, <b>İçe</b>, <b>Dışa</b> gibi desenler
+      açıların düzenli değişimiyle oluşur.</p>
+      <p><b>Rastgele</b> ile <b>Pürüzsüz</b> farkına dikkat et: pürüzsüzde komşu hücrelerin açıları birbirine yakın.
+      Büyük sergideki harita bunu kullanıyor.</p>`,
+    target: '#presets', demo: () => applyPreset('cw'),
+  },
+  {
+    title: 'Görevler ve çalışma kağıdı',
+    body: `<p>Aşağıdaki beş görevi sırayla yap. İlk ikisini tamamladığında yeşil işaret çıkar.</p>
+      <p>Cevaplarını çalışma kağıdına yaz; girdap görevinde her hücrenin açısını deftere not et.
+      İyi eğlenceler!</p>`,
+    target: '#tasks', demo: () => applyPreset('smooth'),
+  },
+];
+
+function setupTutorial() {
+  document.getElementById('tutBtn').addEventListener('click', startTutorial);
+  document.getElementById('tutClose').addEventListener('click', endTutorial);
+  document.getElementById('tutNext').addEventListener('click', () => tutGo(tut.i + 1));
+  document.getElementById('tutPrev').addEventListener('click', () => tutGo(tut.i - 1));
+  const dots = document.getElementById('tutDots');
+  TUT_STEPS.forEach((_, k) => { const d = document.createElement('i'); d.addEventListener('click', () => tutGo(k)); dots.appendChild(d); });
+  window.addEventListener('resize', () => { if (tut.active) tutPlace(); });
+}
+
+function startTutorial() {
+  if (tut.active) return;
+  tut.active = true;
+  tut.savedAngles = Float32Array.from(angles); tut.savedSel = selected;
+  document.getElementById('tut').classList.add('show');
+  tutGo(0);
+}
+
+function endTutorial() {
+  if (!tut.active) return;
+  tutStopAnim();
+  tut.active = false;
+  document.getElementById('tut').classList.remove('show');
+  // öğrencinin kendi ayarlarına dön
+  if (tut.savedAngles) { angles.set(tut.savedAngles); selectCell(tut.savedSel >= 0 ? tut.savedSel : selected); checkTasks(false); }
+  try { localStorage.setItem('ruzgar-tut', '1'); } catch (e) {}
+}
+
+function tutGo(i) {
+  if (i < 0) return;
+  if (i >= TUT_STEPS.length) { endTutorial(); return; }
+  tutStopAnim();
+  tut.i = i;
+  const st = TUT_STEPS[i];
+  document.getElementById('tutStep').textContent = `Adım ${i + 1} / ${TUT_STEPS.length}`;
+  document.getElementById('tutTitle').textContent = st.title;
+  document.getElementById('tutBody').innerHTML = st.body;
+  document.getElementById('tutPrev').style.visibility = i === 0 ? 'hidden' : 'visible';
+  document.getElementById('tutNext').textContent = i === TUT_STEPS.length - 1 ? 'Başla' : 'İleri';
+  [...document.getElementById('tutDots').children].forEach((d, k) => d.classList.toggle('on', k === i));
+  if (selected < 0) selectCell(Math.floor(CONFIG.rows / 2) * CONFIG.cols + Math.floor(CONFIG.cols / 2));
+  if (st.demo) st.demo();
+  tutPlace();
+}
+
+// Işık deliğini hedefe, kartı deliğin yanına yerleştir
+function tutPlace() {
+  const st = TUT_STEPS[tut.i];
+  let r;
+  if (st.target === 'map') r = { left: grid.x - 8, top: grid.y - 8, width: grid.w + 16, height: grid.h + 16 };
+  else if (st.target === 'cellSel') {
+    const c = selected % CONFIG.cols, row = Math.floor(selected / CONFIG.cols);
+    r = { left: grid.x + c * grid.cw - 6, top: grid.y + row * grid.ch - 6, width: grid.cw + 12, height: grid.ch + 12 };
+  } else {
+    const el = document.querySelector(st.target);
+    if (el) { el.scrollIntoView({ block: 'nearest' }); const b = el.getBoundingClientRect(); r = { left: b.left - 8, top: b.top - 8, width: b.width + 16, height: b.height + 16 }; }
+    else r = { left: width / 2 - 100, top: height / 2 - 100, width: 200, height: 200 };
+  }
+  const spot = document.getElementById('spot');
+  spot.style.left = r.left + 'px'; spot.style.top = r.top + 'px'; spot.style.width = r.width + 'px'; spot.style.height = r.height + 'px';
+
+  const card = document.getElementById('card');
+  const cw = 380, ch = card.offsetHeight || 260, m = 18;
+  let left, top;
+  if (st.target === 'map') { left = Math.max(m, r.left + r.width / 2 - cw / 2); top = r.top + r.height + m; if (top + ch > height - m) top = Math.max(m, r.top - ch - m); }
+  else if (st.target === 'cellSel') { left = r.left + r.width + m; top = r.top - 20; if (left + cw > width - 340) left = r.left - cw - m; }
+  else { left = r.left - cw - m; top = Math.min(Math.max(m, r.top), height - ch - m); if (left < m) { left = m; } }
+  card.style.left = Math.max(m, Math.min(left, width - cw - m)) + 'px';
+  card.style.top = Math.max(m, Math.min(top, height - ch - m)) + 'px';
+}
+
+function tutStopAnim() { if (tut.anim) { clearInterval(tut.anim); tut.anim = null; } }
+
+// Adım 3: seçili hücre 0°'den başlayıp yavaşça tam tur döner
+function tutSpin() {
+  let a = 0; if (selected >= 0) setAngle(selected, 0);
+  tut.anim = setInterval(() => { a = (a + 1.5) % 360; if (selected >= 0) setAngle(selected, Math.round(a)); }, 40);
+}
+// Adım 4: hücre sürükleniyormuş gibi sağa sola salınır
+function tutWiggle() {
+  let t0 = 0;
+  tut.anim = setInterval(() => { t0 += 0.06; if (selected >= 0) setAngle(selected, Math.round(90 + Math.sin(t0) * 60)); }, 40);
+}
