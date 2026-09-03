@@ -43,8 +43,8 @@ const CONFIG = {
   typePause: 4.5,        // daktilo: paragraf sonunda imlecin bekleme süresi (sn)
   introReadAfter: 12,    // daktilo: son satırdan sonra kalan okuma payı (sn); toplam süre buna göre uzar
   outlineBrightness: 0.11, // kıyı çizgisi parlaklığı, ayrı alt katmanda (0 kapalı)
-  mouseRadius: 140,      // fare/hareket etkileşimi yarıçapı (0 kapalı)
-  mouseForce: 0.9,
+  mouseRadius: 70,       // fare etkileşimi yarıçapı (0 kapalı); küçük tutuldu ki kart için işaret edilen ışık kaçmasın
+  mouseForce: 0.35,
   sound: 1,              // 1: veriden üretilen ses açık (sound.js), 0 kapalı
   volume: 0.6,           // ana ses düzeyi 0..1
   cards: 1,              // 1: fare/dokunuşla ışığa yaklaşınca tür kartı görünür
