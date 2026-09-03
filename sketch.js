@@ -34,7 +34,7 @@ const CONFIG = {
   recentWindow: 6,       // yıl; doğumların çoğu bu son pencereden seçilir
   recentBias: 0.7,       // pencereden seçilme olasılığı
   holdSeconds: 8,        // son yılda bekleme, sonra baştan
-  introSeconds: 24,      // giriş ekranı süresi; tuş veya dokunuş erken başlatır (0 kapalı)
+  introSeconds: 40,      // giriş ekranı süresi; tuş veya dokunuş erken başlatır (0 kapalı)
   introEachLoop: 1,      // 1: her döngü başında giriş yeniden gösterilir, 0: yalnızca açılışta
   outlineBrightness: 0.11, // kıyı çizgisi parlaklığı, ayrı alt katmanda (0 kapalı)
   mouseRadius: 140,      // fare/hareket etkileşimi yarıçapı (0 kapalı)
