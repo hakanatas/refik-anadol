@@ -13,7 +13,8 @@
 const CONFIG = {
   seed: 1,               // aynı tohum aynı akışı üretir
   particles: 24000,      // parçacık havuzu (sabit bellek)
-  particlesPerObs: 2.5,  // o ana kadarki gözlem sayısına göre canlı parçacık hedefi
+  growthExponent: 0.5,   // canlı parçacık = particles * (gözlem payı)^üs; 1 doğrusal, 0.5 erken yılları görünür kılar
+  classBalance: 0.7,     // 0: sınıflar gerçek oranında (kuş ağırlıklı), 1: eşit; arası karışım
   birthsPerFrame: 300,   // kare başına en fazla doğum (yumuşak büyüme)
   cell: 18,              // akış alanı hücre boyutu (px)
   noiseScale: 0.0021,    // akış alanının uzamsal ölçeği (küçük = geniş girdaplar)
@@ -77,6 +78,8 @@ let DATA, N, yearMin, yearMax, classes;
 let oLon, oLat, oYear, oCls;      // ham gözlemler
 let oX, oY;                       // ekran koordinatları (yeniden boyutlanınca güncellenir)
 let yearStart;                    // yearStart[y - yearMin] = o yıldan itibaren ilk indeks
+let clsIdx = [];                  // clsIdx[c] = o sınıfın gözlem indeksleri (yıla göre sıralı)
+let clsYearStart = [];            // clsYearStart[c][y - yearMin] = clsIdx[c] içinde ilk konum
 const enabled = [true, true, true, true, true];
 
 // ---- Parçacıklar ------------------------------------------------------------
@@ -193,6 +196,29 @@ function loadData() {
     while (idx < N && oYear[idx] < y) idx++;
     yearStart[y - yearMin] = idx;
   }
+
+  // sınıf başına aynı tablo: dengeli doğum için
+  const C = PALETTE.length;
+  clsIdx = []; clsYearStart = [];
+  for (let c = 0; c < C; c++) {
+    const list = [];
+    for (let i = 0; i < N; i++) if (oCls[i] === c) list.push(i);
+    const arr = Int32Array.from(list);
+    const ys = new Int32Array(span);
+    let k = 0;
+    for (let y = yearMin; y <= yearMax + 1; y++) {
+      while (k < arr.length && oYear[arr[k]] < y) k++;
+      ys[y - yearMin] = k;
+    }
+    clsIdx.push(arr); clsYearStart.push(ys);
+  }
+}
+
+// sınıf c için, y yılından itibaren clsIdx[c] içindeki ilk konum
+function clsIdxAtYear(c, y) {
+  if (y <= yearMin) return 0;
+  if (y > yearMax) return clsIdx[c].length;
+  return clsYearStart[c][y - yearMin];
 }
 
 // o yıldan (dahil) itibaren ilk indeks; yılı sınırlar içine kırpar
@@ -247,26 +273,42 @@ function initParticles() {
 }
 
 // Ölü bir parçacığı, aktif yılın gözlemlerinden birinde doğurur.
+// Önce sınıf seçilir (gerçek oran ile eşit dağılımın karışımı), sonra o sınıfın
+// pencere içindeki gerçek bir gözlemi. Her parçacık gerçek bir kayıttır; denge
+// yalnızca hangi sınıfın ne sıklıkla doğduğunu etkiler.
+const clsWeight = new Float64Array(PALETTE.length);
 function spawn(i) {
   const cy = Math.floor(currentYear);
   const end = idxAtYear(cy + 1);
   if (end === 0) return false;
-  let start = 0;
-  if (rng() < CONFIG.recentBias) start = idxAtYear(cy - CONFIG.recentWindow + 1);
-  if (start >= end) start = 0;
-  for (let t = 0; t < 4; t++) {
-    const j = start + Math.floor(rng() * (end - start));
-    const c = oCls[j];
-    if (!enabled[c]) continue;
-    const jit = 2.5;
-    px[i] = oX[j] + (rng() - 0.5) * jit; py[i] = oY[j] + (rng() - 0.5) * jit;
-    phx[i] = px[i]; phy[i] = py[i];
-    pvx[i] = 0; pvy[i] = 0;
-    plife[i] = CONFIG.lifeMin + Math.floor(rng() * (CONFIG.lifeMax - CONFIG.lifeMin));
-    pcls[i] = c; palive[i] = 1;
-    return true;
+  const recent = rng() < CONFIG.recentBias;
+  const yFrom = recent ? cy - CONFIG.recentWindow + 1 : yearMin;
+
+  // sınıf ağırlıkları: pencere içindeki gerçek sayı ile eşit payın karışımı
+  let total = 0;
+  for (let c = 0; c < PALETTE.length; c++) {
+    let n = clsIdxAtYear(c, cy + 1) - clsIdxAtYear(c, yFrom);
+    if (n <= 0 && recent) n = clsIdxAtYear(c, cy + 1);   // pencere boşsa tüm geçmiş
+    const share = n / Math.max(1, end);
+    clsWeight[c] = (!enabled[c] || n <= 0) ? 0
+      : (1 - CONFIG.classBalance) * share + CONFIG.classBalance * (1 / PALETTE.length);
+    total += clsWeight[c];
   }
-  return false;
+  if (total <= 0) return false;
+  let r = rng() * total, c = 0;
+  for (; c < PALETTE.length - 1; c++) { r -= clsWeight[c]; if (r <= 0) break; }
+
+  let a = clsIdxAtYear(c, yFrom), b = clsIdxAtYear(c, cy + 1);
+  if (b - a <= 0) { a = 0; }
+  if (b - a <= 0) return false;
+  const j = clsIdx[c][a + Math.floor(rng() * (b - a))];
+  const jit = 4;   // aynı koordinatta yığılan kayıtları (popüler gözlem noktaları) hafifçe dağıt
+  px[i] = oX[j] + (rng() - 0.5) * jit; py[i] = oY[j] + (rng() - 0.5) * jit;
+  phx[i] = px[i]; phy[i] = py[i];
+  pvx[i] = 0; pvy[i] = 0;
+  plife[i] = CONFIG.lifeMin + Math.floor(rng() * (CONFIG.lifeMax - CONFIG.lifeMin));
+  pcls[i] = c; palive[i] = 1;
+  return true;
 }
 
 // =============================================================================
@@ -289,7 +331,8 @@ function draw() {
   // 3) Doğumlar: canlı sayısı, o ana kadarki gözlem sayısıyla orantılı
   if (resetting === 0 && !introActive) {
     const cum = idxAtYear(Math.floor(currentYear) + 1);
-    const target = Math.min(CONFIG.particles, Math.ceil(cum * CONFIG.particlesPerObs));
+    const target = Math.min(CONFIG.particles,
+      Math.ceil(CONFIG.particles * Math.pow(cum / N, CONFIG.growthExponent)));
     let births = 0;
     for (let i = 0; i < CONFIG.particles && aliveCount < target && births < CONFIG.birthsPerFrame; i++) {
       if (!palive[i] && spawn(i)) { aliveCount++; births++; }
@@ -424,7 +467,7 @@ function buildUi() {
     const el = document.createElement('div');
     el.className = 'chip';
     const [R, G, B] = PALETTE[k];
-    el.innerHTML = `<small>${k + 1}</small><span>${name}</span><i style="color:rgb(${R},${G},${B});background:rgb(${R},${G},${B})"></i>`;
+    el.innerHTML = `<small>${k + 1}</small><span>${name}</span><em></em><i style="color:rgb(${R},${G},${B});background:rgb(${R},${G},${B})"></i>`;
     ui.legend.appendChild(el);
     return el;
   });
@@ -437,7 +480,14 @@ function updateUi() {
   const y = Math.min(yearMax, Math.floor(currentYear));
   if (y !== ui.lastYear) { ui.year.textContent = y; ui.lastYear = y; }
   const cum = idxAtYear(y + 1);
-  if (cum !== ui.lastCount) { ui.count.textContent = fmt.format(cum) + ' gözlem'; ui.lastCount = cum; }
+  if (cum !== ui.lastCount) {
+    ui.count.textContent = fmt.format(cum) + ' gözlem';
+    ui.lastCount = cum;
+    // lejantta her sınıfın o ana kadarki gerçek sayısı
+    for (let c = 0; c < ui.chips.length; c++) {
+      ui.chips[c].querySelector('em').textContent = fmt.format(clsIdxAtYear(c, y + 1));
+    }
+  }
   if (showFps && frameCount % 15 === 0) {
     ui.fps.textContent = `${frameRate().toFixed(0)} fps · ${fmt.format(aliveCount)} parçacık`;
   }

@@ -9,9 +9,9 @@ akış alanı tarafından sürüklenir, iz bırakır, söner ve o yılın başka
 gözleminde yeniden doğar. Renk taksonomik sınıfı, parlaklık yoğunluğu anlatır.
 Zaman 1950'den bugüne yıl yıl akar.
 
-| 1971 | 2024 |
+| 1971 | 2026 |
 |------|------|
-| ![1971](docs/onizleme-1971.png) | ![2024](docs/onizleme-2024.png) |
+| ![1971](docs/onizleme-1971.png) | ![2026](docs/onizleme-2026.png) |
 
 ## Giriş ekranı
 
@@ -28,7 +28,7 @@ ayarlanır (0 kapatır), `introEachLoop: 0` girişi yalnızca açılışta göst
 ## Hızlı başlangıç
 
 Sunucuya gerek yok. `index.html` dosyasına çift tıklayın, tarayıcıda açılır.
-Şu an depoda sentetik (üretilmiş) veri var; gerçek veriyi bağlamak için aşağıya bakın.
+Depodaki veri gerçek: GBIF'ten 4.037.792 Türkiye kaydından örneklenmiş 80.000 gözlem, 1950-2026.
 
 Sergi günü için: tarayıcıda **F** ile tam ekran yapın, **H** ile yazıları gizleyin.
 Sayfa internet gerektirmez; p5.js `lib/` klasöründe yerel olarak durur.
@@ -120,6 +120,9 @@ Sık ayarlanacaklar:
 - `secondsPerYear`: bir yılın kaç saniye sürdüğü. 2.0 ile tam döngü yaklaşık 2.5 dakika.
 - `fade`: iz uzunluğu. Küçük değer uzun, boyalı iz; büyük değer kısa, net iz.
 - `alpha`, `alphaRefAlive`: parlaklık ve beyaza doyma dengesi.
+- `classBalance`: 0 ile sınıflar gerçek oranında doğar (kayıtların %87'si kuş, harita mavi olur),
+  1 ile eşit. Varsayılan 0.7. Her parçacık yine gerçek bir kayıttır; lejant gerçek sayıları gösterir.
+- `growthExponent`: parçacık sayısının gözlem sayısıyla büyüme eğrisi. 0.5 erken yılları görünür kılar.
 - `noiseScale`, `flowForce`, `homePull`: akışın karakteri. `homePull` sıfıra yaklaşınca harita dağılır.
 - `seed`: aynı tohum aynı akışı üretir; beğendiğiniz görüntüyü yeniden bulabilirsiniz.
 
@@ -154,7 +157,7 @@ Jüri karşısında bu ayrımı yapabilmek, işin bilimsel değerini gösterir.
 
 ## Yol haritası
 
-- [ ] Gerçek GBIF verisi (`fetch_gbif_api.py` hazır, takım bilgisayarında çalıştırılacak)
+- [x] Gerçek GBIF verisi
 - [ ] Ses katmanı: o yılın kuş sesleri (Xeno-canto)
 - [ ] Web kamera ile izleyici hareketine tepki
 - [ ] FTC robotunun sensör verisinden canlı katman
