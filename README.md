@@ -67,6 +67,9 @@ https://www.gbif.org/occurrence/search?country=TR&has_coordinate=true&has_geospa
 python3 scripts/prepare_gbif.py yol/0012345-2409.csv -n 80000
 ```
 
+İndirilen zip'i açın, içindeki CSV'yi (adı `0012345-250902....csv` gibi uzun bir sayı olur)
+depo klasörüne kopyalayın. Ham CSV `.gitignore` sayesinde depoya girmez.
+
 Betik dosyayı satır satır okur (milyonlarca satır olabilir), Türkiye kutusu dışındaki
 hatalı koordinatları atar, rastgele 80 bin kayıt örnekler ve `data/observations.json`
 ile `data/observations.js` dosyalarını yazar. Sayfayı yenileyin, biter.
@@ -122,6 +125,12 @@ scripts/common.py               ortak sınıf eşlemesi ve çıktı yazımı
 KONSEPT.md               sergi metni ve algoritmik yaklaşım
 docs/                    önizleme görüntüleri
 ```
+
+## Veri atfı
+
+> GBIF.org (2 September 2026) GBIF Occurrence Download https://doi.org/10.15468/dl.jq9mj7
+
+Ayrıntı `data/KAYNAK.md` dosyasında. Sergi metninde ve FTC portfolyosunda bu satır aynen yer almalı.
 
 ## Sergi metni için önemli not
 

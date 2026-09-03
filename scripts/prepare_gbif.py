@@ -30,6 +30,8 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--year-min", type=int, default=1950)
     ap.add_argument("--year-max", type=int, default=2100)
+    ap.add_argument("--doi", default="10.15468/dl.jq9mj7",
+                    help="GBIF indirmesinin DOI'si; ekranda ve meta'da kaynak olarak görünür")
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
@@ -72,7 +74,8 @@ def main() -> None:
     reservoir.sort(key=lambda o: o[2])
     years = [o[2] for o in reservoir]
     meta = {
-        "source": f"GBIF ({Path(args.csv_path).name}), {seen} geçerli satırdan {len(reservoir)} örnek",
+        "source": f"GBIF Occurrence Download doi.org/{args.doi} · {seen} kayıttan {len(reservoir)} örnek",
+        "citation": f"GBIF.org (2 September 2026) GBIF Occurrence Download https://doi.org/{args.doi}",
         "classes": CLASSES,
         "yearMin": min(years),
         "yearMax": max(years),
