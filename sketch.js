@@ -34,7 +34,7 @@ const CONFIG = {
   recentWindow: 6,       // yıl; doğumların çoğu bu son pencereden seçilir
   recentBias: 0.7,       // pencereden seçilme olasılığı
   holdSeconds: 8,        // son yılda bekleme, sonra baştan
-  introSeconds: 40,      // giriş ekranı süresi; tuş veya dokunuş erken başlatır (0 kapalı)
+  introSeconds: 48,      // giriş ekranı süresi; tuş veya dokunuş erken başlatır (0 kapalı)
   introEachLoop: 1,      // 1: her döngü başında giriş yeniden gösterilir, 0: yalnızca açılışta
   introStyle: 'settle',  // 'settle': harfler dağınık ve bulanıktan yerine oturur (harita gibi)
                          // 'fade': satırlar bütün olarak soluktan netliğe gelir
@@ -155,7 +155,7 @@ function setup() {
 }
 
 // Satırların CSS'teki temel gecikmeleri (saniye); harf stilleri bunun üstüne dağılır
-const STEP_DELAYS = [0.6, 1.6, 4.4, 8.6, 12.8, 16.6, 19.0];
+const STEP_DELAYS = [0.6, 1.6, 4.6, 11.0, 17.4, 23.4, 26.0];   // paragraf araları ~6,4 s
 
 // Metin düğümlerini kelime ve harf span'larına sarar; içi metin olmayan öğelere de .ch verir
 function wrapLetters(root) {
@@ -222,6 +222,7 @@ function showIntro() {
   prepareIntro(el);
   clearTimeout(leaveTimer);
   el.classList.remove('leave');
+  void el.offsetWidth;          // siyah zemin ve geçiş geri gelsin, sonra 'hidden' kalksın
   el.querySelectorAll('.ch.ghost').forEach(c => c.classList.remove('ghost'));
   if (el.classList.contains('letters')) layoutLetters(el);   // her gösterimde yeni dağılım
   introShownAt = millis();
@@ -290,8 +291,9 @@ function hideIntro() {
   el.classList.add('leave');
   clearTimeout(leaveTimer);
   leaveTimer = setTimeout(() => {
+    // 'leave' kalır: arka plan saydam ve geçişsizken gizlenir, siyah perde inmez.
+    // showIntro bir sonraki gösterimde 'leave'i kaldırır.
     el.classList.add('hidden');
-    el.classList.remove('leave');
     if (overlayVisible && !introActive) ui.overlay.classList.remove('hidden');
   }, Math.ceil(maxEnd * 1000) + 100);
 }
