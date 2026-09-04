@@ -39,8 +39,22 @@ def species_name(row: dict) -> str:
     sp = (row.get("species") or "").strip()
     if sp:
         return sp
-    sci = (row.get("scientificName") or "").strip()
-    return " ".join(sci.split()[:2]) if sci else ""
+    # tür yoksa cins, o da yoksa bilimsel adın yazar adı atılmış hali
+    genus = (row.get("genus") or "").strip()
+    if genus:
+        return genus
+    return clean_scientific(row.get("scientificName") or "")
+
+
+def clean_scientific(sci: str) -> str:
+    """'Plebejus Kluk, 1780' -> 'Plebejus'; 'Tomentella Pers.' -> 'Tomentella'; 'Pieris rapae (L.)' -> 'Pieris rapae'."""
+    words = sci.replace(",", " ").split()
+    out = []
+    for i, w in enumerate(words[:2]):
+        if i == 1 and (w[:1].isupper() or "." in w or "(" in w or w[:1].isdigit()):
+            break
+        out.append(w)
+    return " ".join(out)
 
 
 def index_species(records: list) -> tuple:
